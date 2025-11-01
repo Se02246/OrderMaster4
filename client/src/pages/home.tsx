@@ -2,9 +2,9 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
-import { PlusCircle } from "lucide-react";
+// 1. Importa l'icona Search
+import { PlusCircle, Search } from "lucide-react"; 
 import ApartmentCard from "@/components/ui/data-display/ApartmentCard";
-// --- ECCO LA CORREZIONE: Aggiunte le parentesi graffe {} ---
 import { ApartmentModal } from "@/components/ui/modals/ApartmentModal";
 import ConfirmDeleteModal from "@/components/ui/modals/ConfirmDeleteModal";
 import { ApartmentWithAssignedEmployees } from "@shared/schema";
@@ -12,18 +12,22 @@ import { ModalState } from "@/components/ui/modals/types";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 
+// 2. Importa i componenti e le utility necessarie
+import { Input } from "@/components/ui/input";
+import { format } from "date-fns";
+import { it } from "date-fns/locale";
+
 export default function Home() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: apartments, isLoading, error } = useQuery<ApartmentWithAssignedEmployees[]>({
-    queryKey: ["/api/apartments?filter=today"],
-  });
+  // 3. Aggiungi uno stato per il termine di ricerca
+  const [searchTerm, setSearchTerm] = useState("");
 
-  // --- MODIFICA: Logica del colore rimossa ---
-  // const [themeColor, setThemeColor] = useState(...);
-  // const handleColorChange = (...) => { ... };
-  // --- FINE MODIFICA ---
+  const { data: apartments, isLoading, error } = useQuery<ApartmentWithAssignedEmployees[]>({
+    // 4. CHIAVE QUERY MODIFICATA: Carica TUTTI gli appartamenti
+    queryKey: ["/api/apartments"],
+  });
 
   const [modalState, setModalState] = useState<ModalState>({ type: null, data: null });
 
@@ -32,7 +36,8 @@ export default function Home() {
       await apiRequest("DELETE", `/api/apartments/${apartmentId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/apartments?filter=today"] });
+      // 5. Aggiorna la chiave query invalidata
+      queryClient.invalidateQueries({ queryKey: ["/api/apartments"] });
       queryClient.invalidateQueries({ queryKey: ["statistics"] });
       toast({
         title: "Successo",
@@ -61,11 +66,48 @@ export default function Home() {
     }
   };
 
+  // 6. Logica di ordinamento E filtraggio
+  const processedAppointments = apartments
+    // Ordina cronologicamente (dal più vecchio al più nuovo)
+    ?.sort((a, b) => new Date(a.checkIn).getTime() - new Date(b.checkIn).getTime())
+    // Filtra in base al termine di ricerca
+    .filter((apartment) => {
+      const search = searchTerm.toLowerCase();
+      if (!search) return true; // Mostra tutto se la ricerca è vuota
+
+      // Formatta date e stati per includerli nella ricerca
+      const checkInDate = format(new Date(apartment.checkIn), "P p", {
+        locale: it,
+      });
+      const checkOutDate = format(new Date(apartment.checkOut), "P p", {
+        locale: it,
+      });
+
+      // Elenco di tutti i campi in cui cercare
+      const fieldsToSearch = [
+        apartment.name,
+        apartment.address,
+        apartment.customerName,
+        apartment.customerPhone,
+        apartment.notes,
+        apartment.price?.toString(),
+        apartment.status,
+        checkInDate,
+        checkOutDate,
+      ];
+
+      // Controlla se almeno un campo include il termine di ricerca
+      return fieldsToSearch.some((field) =>
+        field ? field.toLowerCase().includes(search) : false
+      );
+    });
+
   if (isLoading) {
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <Skeleton className="h-9 w-64" />
+          {/* Skeleton per la barra di ricerca */}
+          <Skeleton className="h-10 w-64" /> 
           <Skeleton className="h-10 w-48" />
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -82,40 +124,49 @@ export default function Home() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h2 className="text-3xl font-bold tracking-tight">Appuntamenti di Oggi</h2>
+        
+        {/* 7. Sostituisci H2 con la barra di ricerca */}
+        <div className="relative w-full sm:max-w-xs">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Cerca ordini..."
+            className="w-full rounded-lg bg-background pl-8"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+
         <Button onClick={() => setModalState({ type: "add", data: null })}>
           <PlusCircle className="mr-2 h-4 w-4" /> Aggiungi Appuntamento
         </Button>
       </div>
 
-      {/* --- MODIFICA: Box del selettore colore rimosso --- */}
-      {/* <div className="bg-white p-4 rounded-lg shadow">
-        ... (input colore rimosso) ...
-      </div> 
-      */}
-      {/* --- FINE MODIFICA --- */}
-
-
-      {apartments && apartments.length > 0 ? (
+      {/* 8. Mappa i risultati ordinati e filtrati */}
+      {processedAppointments && processedAppointments.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {apartments.map((apartment) => (
+          {processedAppointments.map((apartment) => (
             <ApartmentCard
               key={apartment.id}
               apartment={apartment}
               onEdit={() => setModalState({ type: "edit", data: apartment })}
               onDelete={() => handleDelete(apartment)}
-              onStatusChange={() => queryClient.invalidateQueries({ queryKey: ["/api/apartments?filter=today"] })}
-              onPaymentChange={() => queryClient.invalidateQueries({ queryKey: ["/api/apartments?filter=today"] })}
+              // 9. Aggiorna le chiavi query invalidate
+              onStatusChange={() => queryClient.invalidateQueries({ queryKey: ["/api/apartments"] })}
+              onPaymentChange={() => queryClient.invalidateQueries({ queryKey: ["/api/apartments"] })}
             />
           ))}
         </div>
       ) : (
         <div className="text-center text-gray-500 py-10">
-          Nessun appuntamento per oggi.
+          {/* 10. Messaggio dinamico */}
+          {searchTerm
+            ? "Nessun ordine trovato per questa ricerca."
+            : "Non ci sono ordini da mostrare."}
         </div>
       )}
 
-      {/* Modali */}
+      {/* Modali (invariati) */}
       <ApartmentModal
         isOpen={modalState.type === "add" || modalState.type === "edit"}
         onClose={() => setModalState({ type: null, data: null })}

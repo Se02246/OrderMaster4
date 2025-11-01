@@ -1,11 +1,11 @@
 import { useState } from "react";
-// --- MODIFICA 1: Rimosso 'fetchApi' dall'import ---
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
 import ApartmentCard from "@/components/ui/data-display/ApartmentCard";
-import ApartmentModal from "@/components/ui/modals/ApartmentModal";
+// --- ECCO LA CORREZIONE: Aggiunte le parentesi graffe {} ---
+import { ApartmentModal } from "@/components/ui/modals/ApartmentModal";
 import ConfirmDeleteModal from "@/components/ui/modals/ConfirmDeleteModal";
 import { ApartmentWithAssignedEmployees } from "@shared/schema";
 import { ModalState } from "@/components/ui/modals/types";
@@ -16,17 +16,14 @@ export default function Home() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // --- MODIFICA 2: 'useQuery' corretto ---
-  // Ora usa l'URL come 'queryKey' e omette 'queryFn',
-  // così userà la funzione di default definita in queryClient.ts
   const { data: apartments, isLoading, error } = useQuery<ApartmentWithAssignedEmployees[]>({
     queryKey: ["/api/apartments?filter=today"],
   });
 
-  // --- MODIFICA 3: Logica del colore rimossa ---
+  // --- MODIFICA: Logica del colore rimossa ---
   // const [themeColor, setThemeColor] = useState(...);
   // const handleColorChange = (...) => { ... };
-  // --- FINE MODIFICA 3 ---
+  // --- FINE MODIFICA ---
 
   const [modalState, setModalState] = useState<ModalState>({ type: null, data: null });
 
@@ -36,7 +33,6 @@ export default function Home() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/apartments?filter=today"] });
-      // Invalida anche altre query se necessario, es:
       queryClient.invalidateQueries({ queryKey: ["statistics"] });
       toast({
         title: "Successo",
@@ -92,12 +88,12 @@ export default function Home() {
         </Button>
       </div>
 
-      {/* --- MODIFICA 4: Box del selettore colore rimosso --- */}
+      {/* --- MODIFICA: Box del selettore colore rimosso --- */}
       {/* <div className="bg-white p-4 rounded-lg shadow">
         ... (input colore rimosso) ...
       </div> 
       */}
-      {/* --- FINE MODIFICA 4 --- */}
+      {/* --- FINE MODIFICA --- */}
 
 
       {apartments && apartments.length > 0 ? (

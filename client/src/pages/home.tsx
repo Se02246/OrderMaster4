@@ -1,4 +1,5 @@
-import { useState } from "react";
+// 1. Importa 'useMemo' da react
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,22 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
+
+// 2. Funzione helper per formattare le date in modo sicuro
+const safeFormatDate = (dateString: string | null | undefined) => {
+  if (!dateString) return "";
+  try {
+    const date = new Date(dateString);
+    // Controlla se la data è valida
+    if (isNaN(date.getTime())) {
+      return ""; // Restituisci stringa vuota se non valida
+    }
+    return format(date, "P p", { locale: it });
+  } catch (e) {
+    console.error("Errore formattazione data:", e);
+    return ""; // Restituisci stringa vuota in caso di errore
+  }
+};
 
 export default function Home() {
   const queryClient = useQueryClient();
@@ -59,23 +76,23 @@ export default function Home() {
     }
   };
 
-  // 6. Logica di ordinamento E filtraggio
-  //    LA CORREZIONE È QUI:
-  //    Aggiunto (apartments || []) per sicurezza in caso di undefined
-  //    Aggiunto .slice() per CREARE UNA COPIA prima di ordinare (.sort())
-  const processedAppointments = (apartments || [])
-    .slice() 
-    .sort((a, b) => new Date(a.checkIn).getTime() - new Date(b.checkIn).getTime())
-    .filter((apartment) => {
-      const search = searchTerm.toLowerCase();
-      if (!search) return true; 
+  // 3. Logica di ordinamento e filtraggio racchiusa in useMemo
+  const processedAppointments = useMemo(() => {
+    // Ordina creando una copia
+    const sorted = (apartments || [])
+      .slice() 
+      .sort((a, b) => new Date(a.checkIn).getTime() - new Date(b.checkIn).getTime());
 
-      const checkInDate = format(new Date(apartment.checkIn), "P p", {
-        locale: it,
-      });
-      const checkOutDate = format(new Date(apartment.checkOut), "P p", {
-        locale: it,
-      });
+    const search = searchTerm.toLowerCase();
+    // Se la ricerca è vuota, restituisci direttamente l'array ordinato
+    if (!search) return sorted; 
+
+    // Altrimenti, filtra l'array ordinato
+    return sorted.filter((apartment) => {
+      
+      // Usa la funzione sicura per le date
+      const checkInDate = safeFormatDate(apartment.checkIn);
+      const checkOutDate = safeFormatDate(apartment.checkOut);
 
       const fieldsToSearch = [
         apartment.name,
@@ -83,7 +100,7 @@ export default function Home() {
         apartment.customerName,
         apartment.customerPhone,
         apartment.notes,
-        apartment.price?.toString(), // L'opzionale (?) gestisce il null
+        apartment.price?.toString(), 
         apartment.status,
         checkInDate,
         checkOutDate,
@@ -93,6 +110,7 @@ export default function Home() {
         field ? field.toLowerCase().includes(search) : false
       );
     });
+  }, [apartments, searchTerm]); // 4. Dipendenze: ricalcola solo quando i dati o la ricerca cambiano
 
   if (isLoading) {
     return (
@@ -132,6 +150,7 @@ export default function Home() {
         </Button>
       </div>
 
+      {/* 5. Mappa i processedAppointments (calcolati con useMemo) */}
       {processedAppointments && processedAppointments.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {processedAppointments.map((apartment) => (

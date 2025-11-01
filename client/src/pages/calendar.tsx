@@ -2,7 +2,12 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Apartment } from "shared/schema";
 import { Button } from "@/components/ui/button";
-import { CalendarGrid } from "@/components/ui/data-display/CalendarGrid";
+
+// --- ECCO LA CORREZIONE ---
+// Rimuoviamo le parentesi graffe {} da CalendarGrid
+import CalendarGrid from "@/components/ui/data-display/CalendarGrid";
+// --- FINE CORREZIONE ---
+
 import { Skeleton } from "@/components/ui/skeleton";
 // 1. Importa i componenti Popover, Calendar e l'icona
 import {

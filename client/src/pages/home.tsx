@@ -1,6 +1,7 @@
 import { useState } from "react";
+// --- MODIFICA 1: Rimosso 'fetchApi' dall'import ---
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest, fetchApi } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
 import ApartmentCard from "@/components/ui/data-display/ApartmentCard";
@@ -15,15 +16,17 @@ export default function Home() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  // --- MODIFICA 2: 'useQuery' corretto ---
+  // Ora usa l'URL come 'queryKey' e omette 'queryFn',
+  // così userà la funzione di default definita in queryClient.ts
   const { data: apartments, isLoading, error } = useQuery<ApartmentWithAssignedEmployees[]>({
-    queryKey: ["apartments", "today"],
-    queryFn: () => fetchApi("/api/apartments?filter=today"),
+    queryKey: ["/api/apartments?filter=today"],
   });
 
-  // === MODIFICA: La logica per 'themeColor' è stata rimossa ===
+  // --- MODIFICA 3: Logica del colore rimossa ---
   // const [themeColor, setThemeColor] = useState(...);
   // const handleColorChange = (...) => { ... };
-  // === FINE MODIFICA ===
+  // --- FINE MODIFICA 3 ---
 
   const [modalState, setModalState] = useState<ModalState>({ type: null, data: null });
 
@@ -32,7 +35,8 @@ export default function Home() {
       await apiRequest("DELETE", `/api/apartments/${apartmentId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["apartments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/apartments?filter=today"] });
+      // Invalida anche altre query se necessario, es:
       queryClient.invalidateQueries({ queryKey: ["statistics"] });
       toast({
         title: "Successo",
@@ -88,12 +92,12 @@ export default function Home() {
         </Button>
       </div>
 
-      {/* === MODIFICA: Il box per selezionare il colore è stato rimosso === */}
+      {/* --- MODIFICA 4: Box del selettore colore rimosso --- */}
       {/* <div className="bg-white p-4 rounded-lg shadow">
         ... (input colore rimosso) ...
       </div> 
       */}
-      {/* === FINE MODIFICA === */}
+      {/* --- FINE MODIFICA 4 --- */}
 
 
       {apartments && apartments.length > 0 ? (
@@ -104,8 +108,8 @@ export default function Home() {
               apartment={apartment}
               onEdit={() => setModalState({ type: "edit", data: apartment })}
               onDelete={() => handleDelete(apartment)}
-              onStatusChange={() => queryClient.invalidateQueries({ queryKey: ["apartments"] })}
-              onPaymentChange={() => queryClient.invalidateQueries({ queryKey: ["apartments"] })}
+              onStatusChange={() => queryClient.invalidateQueries({ queryKey: ["/api/apartments?filter=today"] })}
+              onPaymentChange={() => queryClient.invalidateQueries({ queryKey: ["/api/apartments?filter=today"] })}
             />
           ))}
         </div>

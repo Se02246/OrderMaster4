@@ -1,5 +1,5 @@
 import { format, getDate, isSameMonth, startOfMonth, eachDayOfInterval, endOfMonth, endOfWeek, startOfWeek, isToday, isSameDay } from "date-fns";
-import { Link } from "react-router-dom";
+// 1. Rimuoviamo l'import di 'react-router-dom'
 import { Apartment } from "shared/schema";
 
 interface CalendarGridProps {
@@ -14,10 +14,8 @@ export default function CalendarGrid({ month, appointments }: CalendarGridProps)
 
   const getAppointmentsForDay = (day: Date) => {
     return appointments.filter((appt) => 
-      // --- ECCO LA CORREZIONE ---
-      // Modificato da appt.cleaning_date a appt.checkIn
+      // 2. Correzione per la "schermata bianca"
       isSameDay(new Date(appt.checkIn), day)
-      // --- FINE CORREZIONE ---
     );
   };
 
@@ -47,13 +45,14 @@ export default function CalendarGrid({ month, appointments }: CalendarGridProps)
             </time>
             <div className="mt-1 space-y-1 overflow-y-auto" style={{ maxHeight: 'calc(10rem - 2rem)' }}>
               {appointmentsForDay.map((appt) => (
-                <Link
+                // 3. Correzione per l'errore di build:
+                //    Sostituito il <Link> con un <div>
+                <div
                   key={appt.id}
-                  to={`/day/${format(day, "yyyy-MM-dd")}`} // Link to day view
-                  className="block p-1.5 text-xs rounded-md bg-blue-100 text-blue-800 hover:bg-blue-200 truncate"
+                  className="block p-1.5 text-xs rounded-md bg-blue-100 text-blue-800 truncate"
                 >
                   {appt.name}
-                </Link>
+                </div>
               ))}
             </div>
           </div>

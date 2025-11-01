@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
-// 1. Importa l'icona Search
 import { PlusCircle, Search } from "lucide-react"; 
 import ApartmentCard from "@/components/ui/data-display/ApartmentCard";
 import { ApartmentModal } from "@/components/ui/modals/ApartmentModal";
@@ -11,8 +10,6 @@ import { ApartmentWithAssignedEmployees } from "@shared/schema";
 import { ModalState } from "@/components/ui/modals/types";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-
-// 2. Importa i componenti e le utility necessarie
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
@@ -20,12 +17,9 @@ import { it } from "date-fns/locale";
 export default function Home() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-
-  // 3. Aggiungi uno stato per il termine di ricerca
   const [searchTerm, setSearchTerm] = useState("");
 
   const { data: apartments, isLoading, error } = useQuery<ApartmentWithAssignedEmployees[]>({
-    // 4. CHIAVE QUERY MODIFICATA: Carica TUTTI gli appartamenti
     queryKey: ["/api/apartments"],
   });
 
@@ -36,7 +30,6 @@ export default function Home() {
       await apiRequest("DELETE", `/api/apartments/${apartmentId}`);
     },
     onSuccess: () => {
-      // 5. Aggiorna la chiave query invalidata
       queryClient.invalidateQueries({ queryKey: ["/api/apartments"] });
       queryClient.invalidateQueries({ queryKey: ["statistics"] });
       toast({
@@ -67,15 +60,16 @@ export default function Home() {
   };
 
   // 6. Logica di ordinamento E filtraggio
-  const processedAppointments = apartments
-    // Ordina cronologicamente (dal più vecchio al più nuovo)
-    ?.sort((a, b) => new Date(a.checkIn).getTime() - new Date(b.checkIn).getTime())
-    // Filtra in base al termine di ricerca
+  //    LA CORREZIONE È QUI:
+  //    Aggiunto (apartments || []) per sicurezza in caso di undefined
+  //    Aggiunto .slice() per CREARE UNA COPIA prima di ordinare (.sort())
+  const processedAppointments = (apartments || [])
+    .slice() 
+    .sort((a, b) => new Date(a.checkIn).getTime() - new Date(b.checkIn).getTime())
     .filter((apartment) => {
       const search = searchTerm.toLowerCase();
-      if (!search) return true; // Mostra tutto se la ricerca è vuota
+      if (!search) return true; 
 
-      // Formatta date e stati per includerli nella ricerca
       const checkInDate = format(new Date(apartment.checkIn), "P p", {
         locale: it,
       });
@@ -83,20 +77,18 @@ export default function Home() {
         locale: it,
       });
 
-      // Elenco di tutti i campi in cui cercare
       const fieldsToSearch = [
         apartment.name,
         apartment.address,
         apartment.customerName,
         apartment.customerPhone,
         apartment.notes,
-        apartment.price?.toString(),
+        apartment.price?.toString(), // L'opzionale (?) gestisce il null
         apartment.status,
         checkInDate,
         checkOutDate,
       ];
 
-      // Controlla se almeno un campo include il termine di ricerca
       return fieldsToSearch.some((field) =>
         field ? field.toLowerCase().includes(search) : false
       );
@@ -106,7 +98,6 @@ export default function Home() {
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          {/* Skeleton per la barra di ricerca */}
           <Skeleton className="h-10 w-64" /> 
           <Skeleton className="h-10 w-48" />
         </div>
@@ -125,7 +116,6 @@ export default function Home() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         
-        {/* 7. Sostituisci H2 con la barra di ricerca */}
         <div className="relative w-full sm:max-w-xs">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -142,7 +132,6 @@ export default function Home() {
         </Button>
       </div>
 
-      {/* 8. Mappa i risultati ordinati e filtrati */}
       {processedAppointments && processedAppointments.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {processedAppointments.map((apartment) => (
@@ -151,7 +140,6 @@ export default function Home() {
               apartment={apartment}
               onEdit={() => setModalState({ type: "edit", data: apartment })}
               onDelete={() => handleDelete(apartment)}
-              // 9. Aggiorna le chiavi query invalidate
               onStatusChange={() => queryClient.invalidateQueries({ queryKey: ["/api/apartments"] })}
               onPaymentChange={() => queryClient.invalidateQueries({ queryKey: ["/api/apartments"] })}
             />
@@ -159,7 +147,6 @@ export default function Home() {
         </div>
       ) : (
         <div className="text-center text-gray-500 py-10">
-          {/* 10. Messaggio dinamico */}
           {searchTerm
             ? "Nessun ordine trovato per questa ricerca."
             : "Non ci sono ordini da mostrare."}

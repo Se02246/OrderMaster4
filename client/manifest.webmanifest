@@ -18,6 +18,6 @@
   ],
   "start_url": "/",
   "display": "standalone",
-  "theme_color": "hsl(0 84% 43%)",
-  "background_color": "hsl(0 84% 43%)"
+  "theme_color": "#ffffff",
+  "background_color": "#ffffff"
 }

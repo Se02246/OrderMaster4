@@ -2,14 +2,8 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Apartment } from "shared/schema";
 import { Button } from "@/components/ui/button";
-
-// --- ECCO LA CORREZIONE ---
-// Rimuoviamo le parentesi graffe {} da CalendarGrid
 import CalendarGrid from "@/components/ui/data-display/CalendarGrid";
-// --- FINE CORREZIONE ---
-
 import { Skeleton } from "@/components/ui/skeleton";
-// 1. Importa i componenti Popover, Calendar e l'icona
 import {
   Popover,
   PopoverContent,
@@ -22,13 +16,11 @@ import { it } from "date-fns/locale";
 
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
-  // 2. Aggiungi stato per il Popover
   const [isPickerOpen, setIsPickerOpen] = useState(false);
 
   const startDate = startOfMonth(currentDate);
   const endDate = endOfMonth(currentDate);
 
-  // Fetch appointments for the current month
   const { data: appointments, isLoading } = useQuery<Apartment[]>({ 
     queryKey: [
       "/api/apartments",
@@ -56,24 +48,21 @@ export default function CalendarPage() {
     setCurrentDate((prev) => addMonths(prev, 1));
   };
 
-  // 3. Handler per quando si seleziona una data dal Popover
   const handleDateSelect = (date: Date | undefined) => {
     if (date) {
       setCurrentDate(date);
-      setIsPickerOpen(false); // Chiude il popover
+      setIsPickerOpen(false); 
     }
   };
 
   return (
     <div className="flex flex-col gap-4 p-4">
       <div className="flex justify-between items-center">
-        {/* Pulsante Mese Precedente (invariato) */}
         <Button variant="outline" onClick={handlePrevMonth}>
           <ChevronLeft className="h-4 w-4" />
           Mese Prec.
         </Button>
 
-        {/* 4. Sostituisci H2 con il selettore Popover */}
         <Popover open={isPickerOpen} onOpenChange={setIsPickerOpen}>
           <PopoverTrigger asChild>
             <Button
@@ -89,16 +78,16 @@ export default function CalendarPage() {
               mode="single"
               selected={currentDate}
               onSelect={handleDateSelect}
-              // Questa è la riga chiave per mostrare i dropdown!
-              captionLayout="dropdown-nav" 
-              fromYear={new Date().getFullYear() - 10}
-              toYear={new Date().getFullYear() + 10}
+              
+              // --- ECCO LA CORREZIONE ---
+              // La riga "captionLayout" è stata rimossa per evitare il crash.
+              // --- FINE CORREZIONE ---
+              
               initialFocus
             />
           </PopoverContent>
         </Popover>
 
-        {/* Pulsante Mese Successivo (invariato) */}
         <Button variant="outline" onClick={handleNextMonth}>
           Mese Succ.
           <ChevronRight className="h-4 w-4" />

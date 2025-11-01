@@ -18,20 +18,31 @@ export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isPickerOpen, setIsPickerOpen] = useState(false);
 
+  // 1. Calcola le date di inizio e fine
   const startDate = startOfMonth(currentDate);
   const endDate = endOfMonth(currentDate);
 
+  // 2. Converte le date in stringhe ISO per la query API
+  const startDateISO = startDate.toISOString();
+  const endDateISO = endDate.toISOString();
+
+  // 3. CORREZIONE: La logica di fetch è stata sistemata
   const { data: appointments, isLoading } = useQuery<Apartment[]>({ 
+    // La chiave di query ora include le stringhe ISO
     queryKey: [
       "/api/apartments",
-      format(startDate, "yyyy-MM-dd"),
-      format(endDate, "yyyy-MM-dd"),
+      startDateISO,
+      endDateISO,
     ],
-    queryFn: async () => {
+    // La queryFn ora legge dalla queryKey per evitare crash
+    queryFn: async ({ queryKey }) => {
+      const [_url, start, end] = queryKey; // Destruttura la chiave
+      
       const params = new URLSearchParams({
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
+        startDate: start as string,
+        endDate: end as string,
       });
+      
       const res = await fetch(`/api/apartments?${params.toString()}`);
       if (!res.ok) {
         throw new Error("Errore nel caricamento degli appuntamenti");
@@ -70,6 +81,7 @@ export default function CalendarPage() {
               className="w-[200px] justify-start text-left font-normal"
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
+              {/* Il 'format' qui è solo per visualizzazione e va bene */}
               {format(currentDate, "MMMM yyyy", { locale: it })}
             </Button>
           </PopoverTrigger>
@@ -78,11 +90,6 @@ export default function CalendarPage() {
               mode="single"
               selected={currentDate}
               onSelect={handleDateSelect}
-              
-              // --- ECCO LA CORREZIONE ---
-              // La riga "captionLayout" è stata rimossa per evitare il crash.
-              // --- FINE CORREZIONE ---
-              
               initialFocus
             />
           </PopoverContent>

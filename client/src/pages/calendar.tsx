@@ -18,37 +18,23 @@ export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isPickerOpen, setIsPickerOpen] = useState(false);
 
-  // 1. Calcola le date di inizio e fine
+  // 1. Calcola le date
   const startDate = startOfMonth(currentDate);
   const endDate = endOfMonth(currentDate);
 
-  // 2. Converte le date in stringhe ISO per la query API
-  const startDateISO = startDate.toISOString();
-  const endDateISO = endDate.toISOString();
+  // 2. Costruisci i parametri di ricerca
+  const params = new URLSearchParams({
+    startDate: startDate.toISOString(),
+    endDate: endDate.toISOString(),
+  });
 
-  // 3. CORREZIONE: La logica di fetch è stata sistemata
+  // 3. Costruisci la stringa URL completa
+  const queryUrl = `/api/apartments?${params.toString()}`;
+
+  // 4. CORREZIONE: Usa lo stesso pattern di home.tsx
+  //    Passa l'URL come queryKey e rimuovi queryFn
   const { data: appointments, isLoading } = useQuery<Apartment[]>({ 
-    // La chiave di query ora include le stringhe ISO
-    queryKey: [
-      "/api/apartments",
-      startDateISO,
-      endDateISO,
-    ],
-    // La queryFn ora legge dalla queryKey per evitare crash
-    queryFn: async ({ queryKey }) => {
-      const [_url, start, end] = queryKey; // Destruttura la chiave
-      
-      const params = new URLSearchParams({
-        startDate: start as string,
-        endDate: end as string,
-      });
-      
-      const res = await fetch(`/api/apartments?${params.toString()}`);
-      if (!res.ok) {
-        throw new Error("Errore nel caricamento degli appuntamenti");
-      }
-      return res.json();
-    },
+    queryKey: [queryUrl],
   });
 
   const handlePrevMonth = () => {
@@ -74,6 +60,7 @@ export default function CalendarPage() {
           Mese Prec.
         </Button>
 
+        {/* Questo è il Popover che avevi chiesto */}
         <Popover open={isPickerOpen} onOpenChange={setIsPickerOpen}>
           <PopoverTrigger asChild>
             <Button
@@ -81,7 +68,6 @@ export default function CalendarPage() {
               className="w-[200px] justify-start text-left font-normal"
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
-              {/* Il 'format' qui è solo per visualizzazione e va bene */}
               {format(currentDate, "MMMM yyyy", { locale: it })}
             </Button>
           </PopoverTrigger>

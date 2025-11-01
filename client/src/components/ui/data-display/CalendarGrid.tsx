@@ -1,34 +1,25 @@
 import { format, getDate, isSameMonth, startOfMonth, eachDayOfInterval, endOfMonth, endOfWeek, startOfWeek, isToday, isSameDay, parseISO } from "date-fns";
-// 1. Importiamo 'useNavigate' per la navigazione
-import { useNavigate } from "react-router-dom";
+// 1. RIMOSSO import 'useNavigate' per correggere la build
 import { Apartment } from "shared/schema";
 
 interface CalendarGridProps {
   month: Date;
   appointments: Apartment[];
+  // 2. Aggiunta prop per gestire il click dal genitore
+  onDayClick: (day: Date) => void; 
 }
 
-export default function CalendarGrid({ month, appointments }: CalendarGridProps) {
-  const navigate = useNavigate(); // Hook per la navigazione
+export default function CalendarGrid({ month, appointments, onDayClick }: CalendarGridProps) {
   const startDate = startOfWeek(startOfMonth(month));
   const endDate = endOfWeek(endOfMonth(month));
   const daysInMonth = eachDayOfInterval({ start: startDate, end: endDate });
 
   const getAppointmentsForDay = (day: Date) => {
     return appointments.filter((appt) => {
-      // --- 3. CORREZIONE ORDINI NON VISIBILI ---
-      // Il campo 'checkIn' è una stringa ISO. 
-      // Dobbiamo usare 'parseISO' per convertirla correttamente in un oggetto Date
-      // prima di passarla a 'isSameDay'. 'new Date()' non è affidabile.
+      // 3. Correzione per visualizzare gli ordini (parseISO)
       const checkInDate = parseISO(appt.checkIn);
       return isSameDay(checkInDate, day);
     });
-  };
-
-  // Funzione per gestire il click sulla cella
-  const handleDayClick = (day: Date) => {
-    const formattedDate = format(day, "yyyy-MM-dd");
-    navigate(`/day/${formattedDate}`);
   };
 
   return (
@@ -42,9 +33,8 @@ export default function CalendarGrid({ month, appointments }: CalendarGridProps)
         return (
           <div
             key={index}
-            // --- 2. CORREZIONE NAVIGAZIONE ---
-            // Aggiunto onClick per navigare e cursor-pointer
-            onClick={() => handleDayClick(day)}
+            // 4. Usa la prop onDayClick per la navigazione
+            onClick={() => onDayClick(day)}
             className={`h-40 border-r border-b border-gray-200 p-2 cursor-pointer ${
               isCurrentMonth ? "bg-white hover:bg-gray-50" : "bg-gray-50 hover:bg-gray-100"
             }`}
@@ -52,8 +42,7 @@ export default function CalendarGrid({ month, appointments }: CalendarGridProps)
             <time
               dateTime={format(day, "yyyy-MM-dd")}
               className={`text-sm font-medium ${
-                // --- 3. CORREZIONE COLORE GIORNO CORRENTE ---
-                // Sostituito 'text-blue-600' con 'text-primary' (che è rosso)
+                // 5. Correzione colore giorno corrente
                 isCurrentToday ? "text-primary font-bold" : 
                 isCurrentMonth ? "text-gray-900" : "text-gray-400"
               }`}

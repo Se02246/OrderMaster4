@@ -5,12 +5,14 @@ import path from 'path'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  // Rimuovi root: 'client' se c'è
   
   resolve: {
     alias: {
-      // L'alias @ ora punta a client/src dalla root
+      // Questo alias punta a client/src
       '@': path.resolve(__dirname, './client/src'),
+      
+      // NUOVA RIGA: Questo alias punta alla cartella 'shared' nella root
+      '@shared': path.resolve(__dirname, './shared'), 
     },
   },
   build: {

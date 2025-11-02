@@ -11,6 +11,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { SafeUser } from "@shared/schema";
+// --- INIZIO MODIFICA ---
+import { AlertTriangle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+// --- FINE MODIFICA ---
 
 const loginSchema = z.object({
   email: z.string().email("Email non valida"),
@@ -88,6 +92,14 @@ export default function LoginPage() {
               <CardTitle>Accedi al tuo account</CardTitle>
             </CardHeader>
             <CardContent>
+              {/* --- INIZIO MODIFICA --- */}
+              <Alert variant="destructive" className="mb-4">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription className="text-xs">
+                  Attenzione: al momento non è disponibile il recupero password. Assicurati di salvare le tue credenziali.
+                </AlertDescription>
+              </Alert>
+              {/* --- FINE MODIFICA --- */}
               <Form {...loginForm}>
                 <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
                   <FormField
@@ -130,6 +142,14 @@ export default function LoginPage() {
               <CardTitle>Crea un nuovo account</CardTitle>
             </CardHeader>
             <CardContent>
+              {/* --- INIZIO MODIFICA --- */}
+              <Alert variant="destructive" className="mb-4">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription className="text-xs">
+                  Attenzione: al momento non è disponibile il recupero password. Assicurati di salvare le tue credenziali!
+                </AlertDescription>
+              </Alert>
+              {/* --- FINE MODIFICA --- */}
               <Form {...registerForm}>
                 <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4">
                   <FormField

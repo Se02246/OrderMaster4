@@ -1,6 +1,5 @@
 // se02246/ordermaster4/OrderMaster4-impl_login/client/src/App.tsx
-
-import { useState } from 'react'; // Importa useState per la sidebar
+import { useState } from 'react'; 
 import {
   BrowserRouter,
   Routes,
@@ -21,43 +20,36 @@ import StatisticsPage from './pages/statistics';
 import NotFoundPage from './pages/not-found';
 import CalendarDayPage from './pages/calendar-day';
 import EmployeeDetailPage from './pages/employee-detail';
-
-// Importa le pagine di accesso
 import SignInPage from './pages/SignInPage';
 import SignUpPage from './pages/SignUpPage';
 
 // Layout per pagine pubbliche (centrato)
-// Risolve il problema della pagina di login allineata a sinistra
 const PublicLayout = ({ children }: { children: React.ReactNode }) => (
   <div className="flex min-h-screen w-full items-center justify-center bg-muted/40">
     {children}
   </div>
 );
 
-/**
- * Layout per pagine protette (con sidebar e header)
- * Risolve il problema della dashboard scombussolata
- */
+// Layout per pagine protette (con sidebar e header)
 const ProtectedAppLayout = () => {
-  // Reintroduce la logica di stato per la sidebar
+  // QUI GESTIAMO LO STATO DELLA SIDEBAR
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
-  // Questa è la struttura di layout corretta 
   return (
     <div className="flex h-screen overflow-hidden">
+      {/* Passiamo lo stato alla Sidebar */}
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
       
-      {/* (md:ml-64) assicura che il contenuto principale 
-          si sposti quando la sidebar è presente su desktop */}
+      {/* 'md:ml-64' fa spazio per la sidebar fissa su desktop */}
       <div className="flex-1 flex flex-col md:ml-64"> 
+        {/* Passiamo la funzione di toggle all'Header */}
         <Header toggleSidebar={toggleSidebar} />
         
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-gray-100">
-          {/* Le rotte protette vengono renderizzate qui dentro */}
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/calendar" element={<CalendarPage />} />
@@ -73,12 +65,11 @@ const ProtectedAppLayout = () => {
   );
 };
 
-
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Rotte Pubbliche (Sign In / Sign Up) */}
+        {/* Rotte Pubbliche */}
         <Route
           path="/sign-in"
           element={
@@ -106,13 +97,12 @@ function App() {
           }
         />
 
-        {/* Rotte Protette (l'app principale) */}
+        {/* Rotte Protette */}
         <Route
           path="/*"
           element={
             <>
               <SignedIn>
-                {/* Usa il layout protetto corretto */}
                 <ProtectedAppLayout />
               </SignedIn>
               <SignedOut>

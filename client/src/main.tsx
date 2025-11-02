@@ -1,8 +1,12 @@
 // se02246/ordermaster4/OrderMaster4-impl_login/client/src/main.tsx
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-// Rimosso BrowserRouter da qui, perché è già gestito in App.tsx
 import { ClerkProvider } from '@clerk/clerk-react';
+
+// NUOVE IMPORTAZIONI PER TANSTACK QUERY
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from '@/lib/queryClient'; // Importa il client già definito
+
 import App from './App';
 import './index.css';
 
@@ -30,12 +34,14 @@ if (container) {
   
   root.render(
     <React.StrictMode>
-      {/* ClerkProvider deve avvolgere l'intera applicazione 
-        per fornire il contesto di autenticazione.
+      {/* Aggiunto QueryClientProvider qui. 
+        Avvolge sia Clerk che l'App.
       */}
-      <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
-          <App />
-      </ClerkProvider>
+      <QueryClientProvider client={queryClient}>
+        <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
+            <App />
+        </ClerkProvider>
+      </QueryClientProvider>
     </React.StrictMode>
   );
 }

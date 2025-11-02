@@ -1,6 +1,6 @@
 // se02246/ordermaster4/OrderMaster4-impl_login/client/src/App.tsx
 
-import { useState } from 'react'; // Re-importa useState per la sidebar
+import { useState } from 'react'; // Importa useState per la sidebar
 import {
   BrowserRouter,
   Routes,
@@ -26,8 +26,8 @@ import EmployeeDetailPage from './pages/employee-detail';
 import SignInPage from './pages/SignInPage';
 import SignUpPage from './pages/SignUpPage';
 
-// Layout per le pagine pubbliche (centrate, senza navigazione)
-// Questo layout è corretto
+// Layout per pagine pubbliche (centrato)
+// Risolve il problema della pagina di login allineata a sinistra
 const PublicLayout = ({ children }: { children: React.ReactNode }) => (
   <div className="flex min-h-screen w-full items-center justify-center bg-muted/40">
     {children}
@@ -35,27 +35,24 @@ const PublicLayout = ({ children }: { children: React.ReactNode }) => (
 );
 
 /**
- * NUOVO COMPONENTE DI LAYOUT
- * Questo componente fonde la logica di layout (dal tuo codice) 
- * con le rotte protette.
+ * Layout per pagine protette (con sidebar e header)
+ * Risolve il problema della dashboard scombussolata
  */
 const ProtectedAppLayout = () => {
+  // Reintroduce la logica di stato per la sidebar
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
-  // Questa è la struttura di layout corretta che mi hai mostrato
+  // Questa è la struttura di layout corretta 
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
       
-      {/* Le classi qui (md:ml-64) sono quelle del tuo codice.
-        Se la sidebar è collassabile, potresti doverle adattare
-        dinamicamente in base a 'isSidebarOpen', ma questo 
-        ripristina la struttura che avevi.
-      */}
+      {/* (md:ml-64) assicura che il contenuto principale 
+          si sposti quando la sidebar è presente su desktop */}
       <div className="flex-1 flex flex-col md:ml-64"> 
         <Header toggleSidebar={toggleSidebar} />
         
@@ -81,7 +78,7 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Rotte Pubbliche (Login e Registrazione) */}
+        {/* Rotte Pubbliche (Sign In / Sign Up) */}
         <Route
           path="/sign-in"
           element={

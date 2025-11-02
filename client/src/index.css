@@ -1,13 +1,20 @@
+/* se02246/ordermaster4/OrderMaster4-impl_login/client/src/index.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
+  /* Aggiunto per assicurare che l'HTML occupi l'altezza dello schermo */
+  html {
+    @apply min-h-screen;
+  }
+
   * {
     @apply border-border;
   }
 
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    /* Utilizza la classe 'h-full' e 'min-h-screen' per risolvere i problemi di layout */
+    @apply font-sans antialiased bg-background text-foreground h-full min-h-screen;
   }
 }

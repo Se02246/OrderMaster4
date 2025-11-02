@@ -1,115 +1,194 @@
-import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ClipboardList, Trophy, CalendarClock } from "lucide-react";
-import { formatDateForDisplay } from "@/lib/date-utils";
+import { useQuery } from '@tanstack/react-query';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
+} from '@/components/ui/chart';
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Pie, PieChart, Cell } from 'recharts';
+import { Employee, Order } from '@/../../shared/schema';
+import { useApi } from '@/lib/api'; // Importa il nuovo hook
+import { Skeleton } from '@/components/ui/skeleton';
+import { useMemo } from 'react';
+import { format } from 'date-fns';
 
-// Definisco i nuovi tipi per i dati
-type TopEmployee = {
-  name: string;
-  count: number;
-};
+// Colori per il grafico a torta
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82ca9d'];
 
-type ProductiveDay = {
-  date: string;
-  count: number;
-};
+const StatisticsPage = () => {
+  const { apiRequest } = useApi(); // Usa il nuovo hook
 
-type StatisticsData = {
-  totalOrders: number;
-  topEmployees: TopEmployee[];
-  busiestDays: ProductiveDay[];
-};
-
-export default function Statistics() {
-  const { data: stats, isLoading, isError } = useQuery<StatisticsData>({
-    queryKey: ['/api/statistics'],
+  // Query per tutti gli ordini
+  const { data: orders, isLoading: isLoadingOrders } = useQuery<Order[]>({
+    queryKey: ['orders', 'all'], // Chiave diversa per tutti gli ordini
+    queryFn: () => apiRequest('GET', '/orders?start=2000-01-01&end=2100-01-01'),
+    enabled: !!apiRequest, // Attendi che apiRequest sia pronto
   });
 
-  if (isLoading) {
-    return (
-      <div className="text-center py-8">
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#70fad3]"></div>
-        <p className="mt-2 text-gray-600">Caricamento statistiche...</p>
-      </div>
-    );
-  }
+  // Query per tutti i clienti
+  const { data: employees, isLoading: isLoadingEmployees } = useQuery<Employee[]>({
+    queryKey: ['employees'],
+    queryFn: () => apiRequest('GET', '/employees'),
+    enabled: !!apiRequest,
+  });
 
-  if (isError || !stats) {
-    return (
-      <div className="text-center py-8 bg-white rounded-lg shadow">
-        <i className="fas fa-exclamation-triangle text-red-500 text-5xl mb-4"></i>
-        <h3 className="text-xl font-medium text-gray-700 mb-2">Errore</h3>
-        <p className="text-gray-500">Impossibile caricare le statistiche.</p>
-      </div>
-    );
-  }
+  const isLoading = isLoadingOrders || isLoadingEmployees;
+
+  // Calcola i dati per i grafici
+  const chartData = useMemo(() => {
+    if (!orders || !employees) return { barData: [], pieData: [] };
+
+    // Dati per il grafico a barre (Ordini per Mese)
+    const monthlyCounts: { [key: string]: { total: number, completed: number } } = {};
+    orders.forEach((order) => {
+      const month = format(new Date(order.date), 'yyyy-MM'); // Usa yyyy-MM per ordinare
+      if (!monthlyCounts[month]) {
+        monthlyCounts[month] = { total: 0, completed: 0 };
+      }
+      monthlyCounts[month].total += 1;
+      if (order.isCompleted) {
+        monthlyCounts[month].completed += 1;
+      }
+    });
+    
+    const barData = Object.keys(monthlyCounts)
+      .sort() // Ordina le date yyyy-MM
+      .map((monthKey) => ({
+        month: format(new Date(monthKey + '-02'), 'MMM yy'), // Formatta per la visualizzazione
+        Totale: monthlyCounts[monthKey].total,
+        Completati: monthlyCounts[monthKey].completed,
+      }));
+
+    // Dati per il grafico a torta (Ordini per Cliente)
+    const employeeOrderCounts: { [key: string]: number } = {};
+    orders.forEach((order) => {
+      let name = 'Non assegnato';
+      if (order.employeeId) {
+        const employee = employees.find((e) => e.id === order.employeeId);
+        name = employee?.name || 'Cliente (ID: ' + order.employeeId + ')';
+      }
+      employeeOrderCounts[name] = (employeeOrderCounts[name] || 0) + 1;
+    });
+    
+    const pieData = Object.keys(employeeOrderCounts).map((name) => ({
+      name,
+      value: employeeOrderCounts[name],
+    }));
+
+    return { barData, pieData };
+  }, [orders, employees]);
+
+  // Dati aggregati
+  const totalOrders = orders?.length || 0;
+  const totalCompleted = orders?.filter((o) => o.isCompleted).length || 0;
+  const totalEmployees = employees?.length || 0;
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-semibold text-dark">Statistiche</h2>
+    <div className="grid gap-4 md:grid-cols-3">
+      {/* Card aggregati */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Interventi Totali</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoadingOrders ? (
+            <Skeleton className="h-10 w-16" />
+          ) : (
+            <div className="text-4xl font-bold">{totalOrders}</div>
+          )}
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Interventi Completati</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoadingOrders ? (
+            <Skeleton className="h-10 w-16" />
+          ) : (
+            <div className="text-4xl font-bold">{totalCompleted}</div>
+          )}
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Clienti Attivi</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoadingEmployees ? (
+            <Skeleton className="h-10 w-16" />
+          ) : (
+            <div className="text-4xl font-bold">{totalEmployees}</div>
+          )}
+        </CardContent>
+      </Card>
 
-      {/* Griglia Metriche */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Ordini Totali */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ordini Totali</CardTitle>
-            <ClipboardList className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalOrders}</div>
-            <p className="text-xs text-muted-foreground">Totale ordini registrati</p>
-          </CardContent>
-        </Card>
+      {/* Grafico a Barre */}
+      <Card className="md:col-span-2">
+        <CardHeader>
+          <CardTitle>Interventi per Mese</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <Skeleton className="h-64 w-full" />
+          ) : (
+            <ChartContainer config={{}} className="h-64 w-full">
+              <BarChart data={chartData.barData}>
+                <CartesianGrid vertical={false} />
+                <XAxis
+                  dataKey="month"
+                  tickLine={false}
+                  tickMargin={10}
+                  axisLine={false}
+                />
+                <YAxis />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <ChartLegend content={<ChartLegendContent />} />
+                <Bar dataKey="Totale" fill="var(--color-primary)" radius={4} />
+                <Bar dataKey="Completati" fill="var(--color-secondary)" radius={4} />
+              </BarChart>
+            </ChartContainer>
+          )}
+        </CardContent>
+      </Card>
 
-        {/* Top 3 Clienti */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium flex items-center gap-2">
-              <Trophy className="h-5 w-5 text-yellow-500" />
-              Top 3 Clienti
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {stats.topEmployees.length > 0 ? (
-              <ol className="list-decimal list-inside space-y-2">
-                {stats.topEmployees.map((employee, index) => (
-                  <li key={index} className="text-sm">
-                    <span className="font-medium">{employee.name || "Cliente non definito"}</span>
-                    <span className="text-muted-foreground"> ({employee.count} {employee.count === 1 ? 'ordine' : 'ordini'})</span>
-                  </li>
-                ))}
-              </ol>
-            ) : (
-              <p className="text-sm text-muted-foreground">Nessun dato disponibile.</p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Top 3 Giorni Produttivi */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium flex items-center gap-2">
-              <CalendarClock className="h-5 w-5 text-blue-500" />
-              Top 3 Giorni Produttivi
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {stats.busiestDays.length > 0 ? (
-              <ol className="list-decimal list-inside space-y-2">
-                {stats.busiestDays.map((day, index) => (
-                  <li key={index} className="text-sm">
-                    <span className="font-medium">{formatDateForDisplay(day.date)}</span>
-                    <span className="text-muted-foreground"> ({day.count} {day.count === 1 ? 'ordine' : 'ordini'})</span>
-                  </li>
-                ))}
-              </ol>
-            ) : (
-               <p className="text-sm text-muted-foreground">Nessun dato disponibile.</p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      {/* Grafico a Torta */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Distribuzione Clienti</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <Skeleton className="h-64 w-full rounded-full" />
+          ) : (
+            <ChartContainer config={{}} className="h-64 w-full">
+              <PieChart>
+                <Pie
+                  data={chartData.pieData}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={80}
+                >
+                  {chartData.pieData.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={COLORS[index % COLORS.length]}
+                    />
+                  ))}
+                </Pie>
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <ChartLegend content={<ChartLegendContent />} />
+              </PieChart>
+            </ChartContainer>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
-}
+};
+
+export default StatisticsPage;

@@ -3,8 +3,7 @@
 import 'dotenv/config';
 import express from 'express';
 
-// 🚨 CORREZIONE: Cambia da import nominato a import default per clerkMiddleware
-import clerkMiddleware from './middleware'; // Manteniamo il nome dell'import
+// Rimuovi l'importazione statica del middleware Clerk
 
 import { apiRoutes } from './routes';
 import viteMiddleware from './vite'; 
@@ -14,20 +13,27 @@ const port = process.env.PORT || 3000;
 
 app.use(express.json());
 
-// CORREZIONE PER L'ERRORE: TypeError: app.use() requires a middleware function
-// A causa del bundling di esbuild con format=esm, l'esportazione di default 
-// può essere incapsulata nella proprietà 'default' dell'oggetto modulo.
-const clerkAuthMiddleware = (clerkMiddleware as any).default || clerkMiddleware;
+// Avvolgi la logica in una funzione asincrona per usare l'importazione dinamica
+async function startServer() {
+  
+  // FIX DEFINITIVO: Usa l'importazione dinamica per risolvere correttamente 
+  // l'export di default del middleware Clerk.
+  const clerkModule = await import('./middleware'); 
+  const clerkAuthMiddleware = clerkModule.default;
 
-// Aggiungi il middleware Clerk PRIMA delle tue rotte API
-app.use(clerkAuthMiddleware);
+  // Aggiungi il middleware Clerk PRIMA delle tue rotte API
+  // Ora clerkAuthMiddleware è garantito essere la funzione middleware
+  app.use(clerkAuthMiddleware);
 
-// Rotte API
-app.use('/api', apiRoutes);
+  // Rotte API
+  app.use('/api', apiRoutes);
 
-// Middleware Vite per servire il client
-app.use(viteMiddleware);
+  // Middleware Vite per servire il client
+  app.use(viteMiddleware);
 
-app.listen(port, () => {
-  console.log(`Server listening on port ${port}`);
-});
+  app.listen(port, () => {
+    console.log(`Server listening on port ${port}`);
+  });
+}
+
+startServer();

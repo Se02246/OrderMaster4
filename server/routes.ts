@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import { db } from './db';
-// MODIFICA QUI: import 'cleaningOrders' e rinominalo in 'orders' per usarlo facilmente
-import { apartments, employees, cleaningOrders as orders } from '../shared/schema';
+// MODIFICA QUI: import 'orders' (non 'cleaningOrders')
+import { apartments, employees, orders } from '../shared/schema';
 import { and, eq, gte, lte } from 'drizzle-orm';
-// MODIFICA QUI: import 'getUploadUrl'
-import { getUploadUrl } from './storage';
+// MODIFICA QUI: import 'getSignedUrl' (non 'getUploadUrl')
+import { getSignedUrl } from './storage';
 
 export const apiRoutes = Router();
 
@@ -73,7 +73,6 @@ apiRoutes.delete('/employees/:id', async (req, res) => {
 
 
 // --- Rotte Ordini (Orders) ---
-// (Tutto il codice qui sotto usa 'orders' grazie all'import rinominato)
 apiRoutes.get('/orders', async (req, res) => {
   const { start, end, employeeId } = req.query;
 
@@ -172,8 +171,8 @@ apiRoutes.get('/upload-url', async (req, res) => {
     return res.status(400).send('Parametri non validi');
   }
   try {
-    // MODIFICA QUI: chiama 'getUploadUrl'
-    const url = await getUploadUrl(fileName, fileType);
+    // MODIFICA QUI: chiama 'getSignedUrl'
+    const url = await getSignedUrl(fileName, fileType);
     res.json({ url });
   } catch (error) {
     console.error('Errore nel generare l\'URL di upload:', error);

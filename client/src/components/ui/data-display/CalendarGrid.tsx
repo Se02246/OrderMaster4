@@ -1,146 +1,119 @@
-import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
-import { format, addMonths, subMonths, parseISO, getDaysInMonth, getDay, setDate, isSameDay } from "date-fns";
-import { it } from "date-fns/locale";
-import { ApartmentWithAssignedEmployees } from "@shared/schema";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  eachDayOfInterval,
+  endOfMonth,
+  endOfWeek,
+  startOfMonth,
+  startOfWeek,
+  format,
+  isSameMonth,
+  isSameDay,
+} from 'date-fns';
+import { it } from 'date-fns/locale';
+import { Order } from '@/../../shared/schema';
+import { cn } from '@/lib/utils';
+import { Link } from 'react-router-dom'; // MODIFICATO: Importa da react-router-dom
+import { Skeleton } from '../skeleton';
 
-type CalendarGridProps = {
-  year: number;
-  month: number;
-  apartments: ApartmentWithAssignedEmployees[];
-  onMonthChange: (year: number, month: number) => void;
-};
+interface CalendarGridProps {
+  currentDate: Date;
+  orders: Order[];
+  isLoading: boolean;
+}
 
-export default function CalendarGrid({ year, month, apartments, onMonthChange }: CalendarGridProps) {
-  const [, navigate] = useLocation();
-  const currentDate = new Date();
-  const viewDate = new Date(year, month - 1, 1);
+const CalendarGrid = ({
+  currentDate,
+  orders,
+  isLoading,
+}: CalendarGridProps) => {
+  const firstDay = startOfMonth(currentDate);
+  const lastDay = endOfMonth(currentDate);
+  const start = startOfWeek(firstDay, { locale: it });
+  const end = endOfWeek(lastDay, { locale: it });
 
-  const handlePrevMonth = () => {
-    const prevMonth = subMonths(viewDate, 1);
-    onMonthChange(prevMonth.getFullYear(), prevMonth.getMonth() + 1);
-  };
+  const days = eachDayOfInterval({ start, end });
+  const daysOfWeek = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
 
-  const handleNextMonth = () => {
-    const nextMonth = addMonths(viewDate, 1);
-    onMonthChange(nextMonth.getFullYear(), nextMonth.getMonth() + 1);
-  };
-
-  // Group apartments by date
-  const apartmentsByDate: Record<string, ApartmentWithAssignedEmployees[]> = {};
-  apartments.forEach(apt => {
-    const dateStr = apt.cleaning_date;
-    if (!apartmentsByDate[dateStr]) {
-      apartmentsByDate[dateStr] = [];
-    }
-    apartmentsByDate[dateStr].push(apt);
-  });
-
-  const renderCalendarDays = () => {
-    const days = [];
-    const daysInMonth = getDaysInMonth(viewDate);
-
-    // Get the day of the week for the first day of the month (0 = Sunday, 1 = Monday, etc.)
-    // Adjust for Monday as the first day of the week
-    let firstDayOfMonth = getDay(setDate(viewDate, 1));
-    firstDayOfMonth = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1; // Adjust for Monday start
-
-    // Add empty cells for days before the first of the month
-    for (let i = 0; i < firstDayOfMonth; i++) {
-      days.push(
-        <div key={`empty-${i}`} className="h-28 border p-1 bg-gray-50"></div>
-      );
-    }
-
-    // Add cells for each day of the month
-    for (let day = 1; day <= daysInMonth; day++) {
-      const date = new Date(year, month - 1, day);
-      const dateStr = format(date, 'yyyy-MM-dd');
-      const isToday = isSameDay(date, currentDate);
-
-      const dayApartments = apartmentsByDate[dateStr] || [];
-
-      days.push(
-        <div
-          key={dateStr}
-          className={`h-28 border p-1 cursor-pointer hover:bg-gray-50 transition-colors relative group ${
-            isToday ? 'bg-primary/10' : ''
-          }`}
-          onClick={() => navigate(`/calendar/${year}/${month}/${day}`)}
-          data-date={dateStr}
-        >
-          <div className={`absolute top-1 left-1 font-medium ${isToday ? 'text-primary' : ''}`}>
-            {day}
-          </div>
-
-          {dayApartments.length > 0 && (
-            <div className="mt-6 space-y-1">
-              {dayApartments.slice(0, 2).map(apt => (
-                <div
-                  key={apt.id}
-                  className="bg-primary/20 rounded px-1 py-0.5 text-xs truncate"
-                  title={apt.name}
-                >
-                  {apt.name}
-                </div>
-              ))}
-              {dayApartments.length > 2 && (
-                <div className="text-xs text-gray-500">
-                  +{dayApartments.length - 2} altri
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    return days;
-  };
+  // Raggruppa gli ordini per giorno
+  const ordersByDay = orders.reduce(
+    (acc, order) => {
+      const dayString = format(new Date(order.date), 'yyyy-MM-dd');
+      if (!acc[dayString]) {
+        acc[dayString] = [];
+      }
+      acc[dayString].push(order);
+      return acc;
+    },
+    {} as Record<string, Order[]>,
+  );
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-semibold text-dark">Calendario</h2>
-        <div className="flex items-center space-x-2">
-          <button
-            className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
-            onClick={handlePrevMonth}
-            aria-label="Mese precedente"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-          <div className="text-lg font-medium">
-            {format(viewDate, 'MMMM yyyy', { locale: it })}
-          </div>
-          <button
-            className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
-            onClick={handleNextMonth}
-            aria-label="Mese successivo"
-          >
-            <ChevronRight className="h-5 w-5" />
-          </button>
+    <div className="grid grid-cols-7 gap-px overflow-hidden rounded-lg border bg-border">
+      {/* Intestazione giorni della settimana */}
+      {daysOfWeek.map((day) => (
+        <div
+          key={day}
+          className="py-2 text-center text-sm font-medium text-muted-foreground bg-muted/50"
+        >
+          {day}
         </div>
-      </div>
+      ))}
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        {/* Calendar Header */}
-        <div className="grid grid-cols-7 text-center border-b">
-          <div className="py-3 font-medium text-gray-600">Lun</div>
-          <div className="py-3 font-medium text-gray-600">Mar</div>
-          <div className="py-3 font-medium text-gray-600">Mer</div>
-          <div className="py-3 font-medium text-gray-600">Gio</div>
-          <div className="py-3 font-medium text-gray-600">Ven</div>
-          <div className="py-3 font-medium text-gray-600">Sab</div>
-          <div className="py-3 font-medium text-gray-600">Dom</div>
-        </div>
+      {/* Griglia dei giorni */}
+      {isLoading &&
+        [...Array(35)].map((_, i) => (
+          <Skeleton key={i} className="h-24 w-full rounded-none" />
+        ))}
 
-        {/* Calendar Days Grid */}
-        <div className="grid grid-cols-7 text-sm">
-          {renderCalendarDays()}
-        </div>
-      </div>
+      {!isLoading &&
+        days.map((day) => {
+          const dayString = format(day, 'yyyy-MM-dd');
+          const dayOrders = ordersByDay[dayString] || [];
+          const isCurrentMonth = isSameMonth(day, currentDate);
+          const isToday = isSameDay(day, new Date());
+
+          return (
+            <Link
+              key={dayString}
+              // MODIFICATO: da 'href' a 'to'
+              to={`/calendar/${dayString}`}
+              className={cn(
+                'relative flex h-24 flex-col p-2 bg-background hover:bg-muted/50 transition-colors',
+                !isCurrentMonth && 'bg-muted/25 text-muted-foreground',
+              )}
+            >
+              <time
+                dateTime={dayString}
+                className={cn(
+                  'text-sm font-medium',
+                  isToday &&
+                    'flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground',
+                )}
+              >
+                {format(day, 'd')}
+              </time>
+              {dayOrders.length > 0 && (
+                <div className="mt-1 flex-1 overflow-y-auto">
+                  <ul className="space-y-1">
+                    {dayOrders.slice(0, 2).map((order) => (
+                      <li key={order.id}>
+                        <span className="block truncate text-xs font-medium text-foreground p-1 bg-primary/20 rounded-sm">
+                          {order.details || 'Ordine'}
+                        </span>
+                      </li>
+                    ))}
+                    {dayOrders.length > 2 && (
+                      <li className="text-xs text-muted-foreground">
+                        + {dayOrders.length - 2} altri
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              )}
+            </Link>
+          );
+        })}
     </div>
   );
-}
+};
+
+export default CalendarGrid;

@@ -32,19 +32,19 @@ const __dirname = path.dirname(__filename);
 // Calcola il percorso assoluto della cartella di build del client (dist/client è un livello sopra server/)
 const clientDistPath = path.resolve(__dirname, '..', 'dist', 'client');
 
+// RISOLUZIONE (per 404 e Service Worker)
 // A causa della configurazione di build, gli asset sono in dist/client,
 // ma altri file (index.html, sw.js) sono in dist/client/client.
-// Dobbiamo servire entrambi i percorsi staticamente, in ordine.
+// Dobbiamo servire entrambi i percorsi staticamente.
 
 // 1. Serve 'dist/client' (per gli /assets)
 app.use(express.static(clientDistPath));
-// 2. Serve 'dist/client/client' (per sw.js e altri file public)
-// Questo risolve l'errore MIME type per sw.js
+// 2. Serve 'dist/client/client' (per sw.js e index.html alla root '/')
 app.use(express.static(path.join(clientDistPath, 'client')));
 
-// Gestione delle SPA: serve index.html per tutte le altre richieste
-// Il file si trova nella sottocartella 'client'
+// Gestione delle SPA: serve index.html per tutte le altre richieste (es. /calendar)
 app.get('*', (req, res) => {
+  // Invia 'index.html' dalla sottocartella 'client'
   res.sendFile(path.join(clientDistPath, 'client', 'index.html'));
 });
 

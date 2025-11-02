@@ -2,14 +2,13 @@
 
 import 'dotenv/config';
 import express from 'express';
-// Importa gli strumenti 'path' e 'url' necessari per la gestione dei percorsi in ambiente ESM
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 // 🚨 CORREZIONE: Importa i moduli come namespace per gestire l'avvolgimento di esbuild
 import * as middlewareModule from './middleware'; 
 import { apiRoutes } from './routes';
-// Rimosso: import * as viteMiddlewareModule from './vite'; 
+// Rimuovi l'importazione problematica di viteMiddlewareModule: import * as viteMiddlewareModule from './vite'; 
 
 // Funzione helper per estrarre la funzione di default dal wrapper del bundler
 const safeExtractDefault = (module: any) => module.default || module;
@@ -28,19 +27,24 @@ app.use(clerkMiddleware);
 app.use('/api', apiRoutes);
 
 // --- CORREZIONE PER SERVIRE I FILE STATICI IN PRODUZIONE ---
-// Definisce __dirname e __filename per l'uso in ambiente ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 // Calcola il percorso assoluto della cartella di build del client (dist/client è un livello sopra server/)
 const clientDistPath = path.resolve(__dirname, '..', 'dist', 'client');
 
-// Middleware per servire i file statici del client (percorso di build: dist/client)
-app.use(express.static(clientDistPath));
+// A causa della configurazione di build, gli asset sono in dist/client,
+// ma altri file (index.html, sw.js) sono in dist/client/client.
+// Dobbiamo servire entrambi i percorsi staticamente, in ordine.
 
-// Gestione delle SPA: serve index.html per tutte le altre richieste non gestite
+// 1. Serve 'dist/client' (per gli /assets)
+app.use(express.static(clientDistPath));
+// 2. Serve 'dist/client/client' (per sw.js e altri file public)
+// Questo risolve l'errore MIME type per sw.js
+app.use(express.static(path.join(clientDistPath, 'client')));
+
+// Gestione delle SPA: serve index.html per tutte le altre richieste
+// Il file si trova nella sottocartella 'client'
 app.get('*', (req, res) => {
-  // CORREZIONE: Aggiunto 'client' nel percorso per trovare index.html 
-  // (rispetta la struttura di build annidata dedotta dall'output)
   res.sendFile(path.join(clientDistPath, 'client', 'index.html'));
 });
 

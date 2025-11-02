@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import { db } from './db';
-import { apartments, employees, orders } from '../shared/schema';
+// MODIFICA QUI: import 'cleaningOrders' e rinominalo in 'orders' per usarlo facilmente
+import { apartments, employees, cleaningOrders as orders } from '../shared/schema';
 import { and, eq, gte, lte } from 'drizzle-orm';
-import { getSignedUrl } from './storage';
+// MODIFICA QUI: import 'getUploadUrl'
+import { getUploadUrl } from './storage';
 
-// Deve usare "export const" per funzionare con l'index
 export const apiRoutes = Router();
 
 // Middleware per controllare se l'utente è autenticato
@@ -72,6 +73,7 @@ apiRoutes.delete('/employees/:id', async (req, res) => {
 
 
 // --- Rotte Ordini (Orders) ---
+// (Tutto il codice qui sotto usa 'orders' grazie all'import rinominato)
 apiRoutes.get('/orders', async (req, res) => {
   const { start, end, employeeId } = req.query;
 
@@ -170,7 +172,8 @@ apiRoutes.get('/upload-url', async (req, res) => {
     return res.status(400).send('Parametri non validi');
   }
   try {
-    const url = await getSignedUrl(fileName, fileType);
+    // MODIFICA QUI: chiama 'getUploadUrl'
+    const url = await getUploadUrl(fileName, fileType);
     res.json({ url });
   } catch (error) {
     console.error('Errore nel generare l\'URL di upload:', error);

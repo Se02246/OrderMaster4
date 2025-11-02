@@ -3,16 +3,18 @@
 import 'dotenv/config';
 import express from 'express';
 
-// 🚨 CORREZIONE: Importa il modulo middleware come namespace per gestire 
-// l'wrapping di esbuild intorno all'export default.
+// 🚨 CORREZIONE: Importa i moduli come namespace per gestire l'avvolgimento di esbuild
 import * as middlewareModule from './middleware'; 
 import { apiRoutes } from './routes';
-import viteMiddleware from './vite'; 
+import * as viteMiddlewareModule from './vite'; 
 
-// 🚨 CORREZIONE: Estrae la funzione middleware dalla proprietà 'default' 
-// o usa il modulo stesso se non ha la proprietà 'default' (per maggiore compatibilità).
-const clerkMiddleware = (middlewareModule as any).default || middlewareModule;
+// Funzione helper per estrarre la funzione di default dal wrapper del bundler
+// (es. estrae la funzione da { default: [Function] })
+const safeExtractDefault = (module: any) => module.default || module;
 
+// Estrae le funzioni middleware
+const clerkMiddleware = safeExtractDefault(middlewareModule);
+const viteMiddleware = safeExtractDefault(viteMiddlewareModule);
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -20,13 +22,13 @@ const port = process.env.PORT || 3000;
 app.use(express.json());
 
 // Aggiungi il middleware Clerk PRIMA delle tue rotte API
-app.use(clerkMiddleware);
+app.use(clerkMiddleware); // Ora clerkMiddleware è garantito essere la funzione
 
 // Rotte API
 app.use('/api', apiRoutes);
 
 // Middleware Vite per servire il client
-app.use(viteMiddleware);
+app.use(viteMiddleware); // Garantisce che anche viteMiddleware sia una funzione
 
 app.listen(port, () => {
   console.log(`Server listening on port ${port}`);

@@ -5,20 +5,20 @@ import path from 'path'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  // 1. Rimuovi root: 'client'
+  // root: 'client' è stato rimosso
   
   resolve: {
     alias: {
-      // 2. L'alias per '@' è ancora corretto
+      // L'alias @ ora punta a client/src dalla root
       '@': path.resolve(__dirname, './client/src'),
     },
   },
   build: {
-    // 3. Modifica outDir
+    // L'output è relativo alla root
     outDir: 'dist/client',
     emptyOutDir: true,
     
-    // 4. Aggiungi questo
+    // Questo dice a Vite dove trovare l'HTML
     rollupOptions: {
       input: 'client/index.html'
     }

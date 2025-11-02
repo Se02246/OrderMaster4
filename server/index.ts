@@ -23,22 +23,24 @@ app.use(clerkMiddleware);
 // Rotte API
 app.use('/api', apiRoutes);
 
-// --- CODICE PER LA PRODUZIONE (CORREZIONE UI) ---
+// --- CODICE PER LA PRODUZIONE (CORREZIONE FINALE) ---
 // Definisce __dirname per l'ambiente ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-// Trova la cartella di build del client (contiene index.html e la cartella assets)
+// Trova la cartella di build del client 
 const clientDistPath = path.resolve(__dirname, '..', 'dist', 'client');
 
-// 1. Serve tutti i file statici dalla cartella di build di Vite (dist/client).
-// Questo assicura che gli asset come il file CSS di Tailwind vengano caricati correttamente.
+// 1. Serve tutti i file statici dalla cartella di base di Vite (dist/client).
+// Questo gestisce correttamente la cartella 'assets/' (CSS/JS).
 app.use(express.static(clientDistPath));
 
-// 2. Gestione delle SPA (Single Page Application): invia 'index.html' per tutte le altre richieste.
-// Questo è cruciale per il routing lato client (es. /calendar, /employees).
+// Abbiamo rimosso la riga "app.use(express.static(path.join(clientDistPath, 'client')))"
+// che in precedenza causava conflitti e la UI corrotta.
+
+// 2. Gestione delle SPA: invia 'index.html' per tutte le altre richieste.
+// CORREZIONE: Usiamo il percorso annidato 'client/index.html' come indicato dal log di build.
 app.get('*', (req, res) => {
-  // Invia l'index.html dalla radice della cartella di distribuzione (clientDistPath)
-  res.sendFile(path.join(clientDistPath, 'index.html'));
+  res.sendFile(path.join(clientDistPath, 'client', 'index.html'));
 });
 
 app.listen(port, () => {

@@ -5,23 +5,20 @@ import path from 'path'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  // 1. Rimuovi `root: 'client'`.
-  //    Ora Vite opererà dalla cartella principale e troverà `node_modules`.
+  // 1. Rimuovi root: 'client'
   
   resolve: {
     alias: {
-      // 2. L'alias per '@' è ancora corretto, punta a client/src
+      // 2. L'alias per '@' è ancora corretto
       '@': path.resolve(__dirname, './client/src'),
     },
   },
   build: {
-    // 3. Modifica outDir perché sia relativo alla root.
+    // 3. Modifica outDir
     outDir: 'dist/client',
     emptyOutDir: true,
     
-    // 4. Aggiungi questo. È il passo cruciale:
-    //    Dice a Vite dove trovare il file HTML di input,
-    //    visto che non è più nella root.
+    // 4. Aggiungi questo
     rollupOptions: {
       input: 'client/index.html'
     }

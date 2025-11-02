@@ -1,313 +1,289 @@
-import { useState } from "react";
-import { useParams, Link } from "wouter";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"; // Modificato
-import { format } from "date-fns";
-import { it } from "date-fns/locale";
-import ApartmentCard from "@/components/ui/data-display/ApartmentCard";
-import { ApartmentModal } from "@/components/ui/modals/ApartmentModal";
-import ConfirmDeleteModal from "@/components/ui/modals/ConfirmDeleteModal";
-import { Button } from "@/components/ui/button";
-import { apiRequest } from "@/lib/queryClient"; // Modificato
-import { useToast } from "@/hooks/use-toast";
-import { ApartmentWithAssignedEmployees, Employee } from "@shared/schema";
-import { ApartmentFormData } from "@/components/ui/modals/types";
+import { useState } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { format, parseISO, isValid } from 'date-fns';
+import { it } from 'date-fns/locale';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardDescription,
+} from '@/components/ui/card';
+import {
+  ChevronLeft,
+  ChevronRight,
+  PlusCircle,
+  Trash2,
+  Edit,
+} from 'lucide-react';
+import { addDays, subDays } from 'date-fns';
+import { Order, Employee, Apartment } from '@/../../shared/schema';
+import { useApi } from '@/lib/api'; // Importa il nuovo hook
+import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
+import ConfirmDeleteModal from '@/components/ui/modals/ConfirmDeleteModal';
+// Assicurati che i percorsi di importazione dei modali siano corretti
+import OrderModal from '@/components/ui/modals/OrderModal';
+import ApartmentModal from '@/components/ui/modals/ApartmentModal';
 
-export default function CalendarDay() {
+
+type OrderWithEmployee = Order & { employee?: Employee; apartment?: Apartment };
+
+const CalendarDayPage = () => {
+  const { date } = useParams<{ date: string }>();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
-  const queryClient = useQueryClient(); // Aggiunto
-  const params = useParams<{ year: string; month: string; day: string }>();
-  
-  // Convert params to numbers
-  const year = parseInt(params.year || "0");
-  const month = parseInt(params.month || "0");
-  const day = parseInt(params.day || "0");
-  
-  // State for modals
-  const [isApartmentModalOpen, setIsApartmentModalOpen] = useState(false);
+  const { apiRequest } = useApi(); // Usa il nuovo hook
+
+  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [currentApartment, setCurrentApartment] = useState<ApartmentWithAssignedEmployees | undefined>(undefined);
-  const [apartmentToDelete, setApartmentToDelete] = useState<{ id: number, name: string } | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  
+  // Stati per i modali extra
+  const [isApartmentModalOpen, setIsApartmentModalOpen] = useState(false);
 
-  // Format the selected date
-  const selectedDate = new Date(year, month - 1, day);
-  const formattedDate = format(selectedDate, "d MMMM yyyy", { locale: it });
-  
-  // Prepare the date for new apartment creation
-  const formattedDateForInput = format(selectedDate, "yyyy-MM-dd");
-  
-  // Fetch apartments for the selected date
-  const { data: apartments = [], isLoading: isLoadingApartments } = useQuery<ApartmentWithAssignedEmployees[]>({
-    queryKey: [`/api/calendar/${year}/${month}/${day}`],
+  const parsedDate = date ? parseISO(date) : new Date();
+  if (!isValid(parsedDate)) {
+    // Gestisci il caso di data non valida, magari reindirizzando
+    return <div>Data non valida</div>;
+  }
+
+  const formattedDate = format(parsedDate, 'yyyy-MM-dd');
+  const displayDate = format(parsedDate, "EEEE d MMMM yyyy", { locale: it });
+
+  const { data: orders, isLoading: isLoadingOrders } = useQuery<Order[]>({
+    queryKey: ['orders', formattedDate],
+    queryFn: () => apiRequest('GET', `/orders?start=${formattedDate}&end=${formattedDate}`),
+    enabled: !!apiRequest, // Attendi che apiRequest sia pronto
   });
 
-  // Fetch employees for the apartment form
-  const { data: employees = [] } = useQuery<Employee[]>({
-    queryKey: ['/api/employees'],
+  const { data: employees, isLoading: isLoadingEmployees } = useQuery<Employee[]>({
+    queryKey: ['employees'],
+    queryFn: () => apiRequest('GET', '/employees'),
+    enabled: !!apiRequest,
   });
 
-  // Create apartment mutation
-  const createApartmentMutation = useMutation({
-    mutationFn: (data: ApartmentFormData) => 
-      apiRequest('POST', '/api/apartments', data),
+  const { data: apartments, isLoading: isLoadingApartments } = useQuery<Apartment[]>({
+    queryKey: ['apartments'],
+    queryFn: () => apiRequest('GET', '/apartments'),
+    enabled: !!apiRequest,
+  });
+
+  // Mutazioni
+  const createOrderMutation = useMutation({
+    mutationFn: (newOrder: Omit<Order, 'id'>) =>
+      apiRequest('POST', '/orders', newOrder),
     onSuccess: () => {
-      // --- INIZIO MODIFICA ---
-      // === Correzione: usiamo predicate per createApartmentMutation ===
-      queryClient.invalidateQueries({ 
-        predicate: (query) => 
-          typeof query.queryKey[0] === 'string' && 
-          query.queryKey[0].startsWith('/api/apartments') 
-      });
-      queryClient.invalidateQueries({ 
-        predicate: (query) => 
-          typeof query.queryKey[0] === 'string' && 
-          query.queryKey[0].startsWith('/api/calendar') 
-      });
-      queryClient.invalidateQueries({ 
-        predicate: (query) => 
-          typeof query.queryKey[0] === 'string' && 
-          query.queryKey[0].startsWith('/api/employees') 
-      });
-      queryClient.invalidateQueries({ 
-        predicate: (query) => 
-          typeof query.queryKey[0] === 'string' && 
-          query.queryKey[0].startsWith('/api/statistics') 
-      });
-      // --- FINE MODIFICA ---
-      toast({
-        title: "Successo",
-        description: "Ordine creato con successo",
-      });
-      setIsApartmentModalOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['orders', formattedDate] });
+      toast({ title: 'Successo', description: 'Ordine creato.' });
+      setIsOrderModalOpen(false);
+      setSelectedOrder(null);
     },
     onError: (error) => {
       toast({
-        title: "Errore",
-        description: `Errore durante la creazione: ${error.message}`,
-        variant: "destructive",
+        title: 'Errore',
+        description: error.message,
+        variant: 'destructive',
       });
-    }
+    },
   });
 
-  // Update apartment mutation
-  const updateApartmentMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number, data: ApartmentFormData }) => 
-      apiRequest('PUT', `/api/apartments/${id}`, data),
+  const updateOrderMutation = useMutation({
+    mutationFn: (updatedOrder: Order) =>
+      apiRequest('PUT', `/orders/${updatedOrder.id}`, updatedOrder),
     onSuccess: () => {
-      // --- INIZIO MODIFICA ---
-      // === Correzione: usiamo predicate per updateApartmentMutation ===
-      queryClient.invalidateQueries({ 
-        predicate: (query) => 
-          typeof query.queryKey[0] === 'string' && 
-          query.queryKey[0].startsWith('/api/apartments') 
-      });
-      queryClient.invalidateQueries({ 
-        predicate: (query) => 
-          typeof query.queryKey[0] === 'string' && 
-          query.queryKey[0].startsWith('/api/calendar') 
-      });
-      queryClient.invalidateQueries({ 
-        predicate: (query) => 
-          typeof query.queryKey[0] === 'string' && 
-          query.queryKey[0].startsWith('/api/employees') 
-      });
-      queryClient.invalidateQueries({ 
-        predicate: (query) => 
-          typeof query.queryKey[0] === 'string' && 
-          query.queryKey[0].startsWith('/api/statistics') 
-      });
-      // --- FINE MODIFICA ---
-      toast({
-        title: "Successo",
-        description: "Ordine aggiornato con successo",
-      });
-      setIsApartmentModalOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['orders', formattedDate] });
+      toast({ title: 'Successo', description: 'Ordine aggiornato.' });
+      setIsOrderModalOpen(false);
+      setSelectedOrder(null);
     },
     onError: (error) => {
       toast({
-        title: "Errore",
-        description: `Errore durante l'aggiornamento: ${error.message}`,
-        variant: "destructive",
+        title: 'Errore',
+        description: error.message,
+        variant: 'destructive',
       });
-    }
+    },
   });
 
-  // Delete apartment mutation
-  const deleteApartmentMutation = useMutation({
-    mutationFn: (id: number) => 
-      apiRequest('DELETE', `/api/apartments/${id}`),
-    
-    // === INIZIO CORREZIONE PER DELETE ===
+  const deleteOrderMutation = useMutation({
+    mutationFn: (id: number) => apiRequest('DELETE', `/orders/${id}`),
     onSuccess: () => {
-      // Invalida usando predicate per includere query dinamiche
-      queryClient.invalidateQueries({ 
-        predicate: (query) => 
-          typeof query.queryKey[0] === 'string' && 
-          query.queryKey[0].startsWith('/api/apartments') 
-      });
-      queryClient.invalidateQueries({ 
-        predicate: (query) => 
-          typeof query.queryKey[0] === 'string' && 
-          query.queryKey[0].startsWith('/api/calendar') 
-      });
-      queryClient.invalidateQueries({ 
-        predicate: (query) => 
-          typeof query.queryKey[0] === 'string' && 
-          query.queryKey[0].startsWith('/api/employees') 
-      });
-      queryClient.invalidateQueries({ 
-        predicate: (query) => 
-          typeof query.queryKey[0] === 'string' && 
-          query.queryKey[0].startsWith('/api/statistics') 
-      });
-      // === FINE CORREZIONE PER DELETE ===
-
-      toast({
-        title: "Successo",
-        description: "Ordine eliminato con successo",
-      });
+      queryClient.invalidateQueries({ queryKey: ['orders', formattedDate] });
+      toast({ title: 'Successo', description: 'Ordine eliminato.' });
       setIsDeleteModalOpen(false);
+      setSelectedOrder(null);
     },
     onError: (error) => {
       toast({
-        title: "Errore",
-        description: `Errore durante l'eliminazione: ${error.message}`,
-        variant: "destructive",
+        title: 'Errore',
+        description: error.message,
+        variant: 'destructive',
       });
-    }
+    },
   });
 
-  // Event handlers
-  const handleOpenAddModal = () => {
-    setCurrentApartment(undefined);
-    setIsApartmentModalOpen(true);
+  // Gestori di navigazione e modali
+  const goToDay = (day: Date) => {
+    navigate(`/calendar/${format(day, 'yyyy-MM-dd')}`);
   };
 
-  const handleOpenEditModal = (id: number) => {
-    const apartment = apartments?.find(apt => apt.id === id);
-    setCurrentApartment(apartment);
-    setIsApartmentModalOpen(true);
+  const handleOpenNewOrderModal = () => {
+    setSelectedOrder(null);
+    setIsOrderModalOpen(true);
   };
 
-  const handleOpenDeleteModal = (id: number, name: string) => {
-    setApartmentToDelete({ id, name });
+  const handleOpenEditOrderModal = (order: Order) => {
+    setSelectedOrder(order);
+    setIsOrderModalOpen(true);
+  };
+
+  const handleOpenDeleteModal = (order: Order) => {
+    setSelectedOrder(order);
     setIsDeleteModalOpen(true);
   };
 
-  const handleApartmentSubmit = (data: ApartmentFormData) => {
-    if (currentApartment) {
-      updateApartmentMutation.mutate({ id: currentApartment.id, data });
+  const handleSubmitOrder = (data: any) => {
+    const orderData = {
+      ...data,
+      date: formattedDate,
+      employeeId: data.employeeId ? parseInt(data.employeeId, 10) : null,
+      apartmentId: data.apartmentId ? parseInt(data.apartmentId, 10) : null,
+      isCompleted: data.isCompleted,
+    };
+
+    if (selectedOrder) {
+      updateOrderMutation.mutate({ ...selectedOrder, ...orderData });
     } else {
-      // For new apartments, use the selected date
-      createApartmentMutation.mutate({
-        ...data,
-        cleaning_date: formattedDateForInput,
-      });
+      createOrderMutation.mutate(orderData);
     }
   };
 
   const handleDeleteConfirm = () => {
-    if (apartmentToDelete) {
-      deleteApartmentMutation.mutate(apartmentToDelete.id);
+    if (selectedOrder) {
+      deleteOrderMutation.mutate(selectedOrder.id);
     }
   };
 
-  const isPending = createApartmentMutation.isPending || 
-                    updateApartmentMutation.isPending || 
-                    deleteApartmentMutation.isPending;
+  // Unisci i dati
+  const combinedOrders: OrderWithEmployee[] =
+    orders?.map((order) => ({
+      ...order,
+      employee: employees?.find((e) => e.id === order.employeeId),
+      apartment: apartments?.find((a) => a.id === order.apartmentId),
+    })) || [];
 
-  if (!year || !month || !day || isNaN(selectedDate.getTime())) {
-    return (
-      <div className="text-center py-8 bg-white rounded-lg shadow">
-        <i className="fas fa-exclamation-triangle text-yellow-500 text-5xl mb-4"></i>
-        <h3 className="text-xl font-medium text-gray-600 mb-2">Data non valida</h3>
-        <Link href="/calendar">
-          <a className="mt-4 inline-block text-primary hover:underline">
-            <i className="fas fa-arrow-left mr-2"></i> Torna al calendario
-          </a>
-        </Link>
-      </div>
-    );
-  }
+  const isLoading = isLoadingOrders || isLoadingEmployees || isLoadingApartments;
 
   return (
-    <>
-      <div className="mb-4">
-        <Link href="/calendar">
-          <a className="text-gray-600 hover:text-gray-900 flex items-center mb-4">
-            <i className="fas fa-arrow-left mr-2"></i> Torna al calendario
-          </a>
-        </Link>
-      </div>
-
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-xl font-semibold text-dark">{formattedDate}</h3>
-        <Button 
-          onClick={handleOpenAddModal}
-          disabled={isPending}
-          className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium px-4 py-2 rounded-lg transition-colors flex items-center"
-        >
-          <i className="fas fa-plus mr-2"></i> AGGIUNGI
-        </Button>
-      </div>
-
-      {isLoadingApartments ? (
-        <div className="text-center py-8">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          <p className="mt-2 text-gray-600">Caricamento ordini...</p>
-        </div>
-      ) : apartments.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {apartments.map((apartment) => (
-            <ApartmentCard
-              key={apartment.id}
-              apartment={apartment}
-              onEdit={handleOpenEditModal}
-              onDelete={handleOpenDeleteModal}
-              onClick={() => handleOpenEditModal(apartment.id)}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-8 bg-white rounded-lg shadow">
-          <i className="fas fa-calendar-day text-gray-300 text-5xl mb-4"></i>
-          <h3 className="text-xl font-medium text-gray-600 mb-2">Nessun ordine per questa data</h3>
-          <p className="text-gray-500 mb-4">
-            Non ci sono ordini programmati per il {formattedDate}.
-          </p>
-          <Button 
-            onClick={handleOpenAddModal}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium px-4 py-2 rounded-lg transition-colors"
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => goToDay(subDays(parsedDate, 1))}
           >
-            <i className="fas fa-plus mr-2"></i> AGGIUNGI ORDINE
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <div className="text-center">
+            <CardTitle className="text-2xl">{displayDate}</CardTitle>
+            <Button variant="link" asChild className="-mt-1">
+              <Link to="/calendar">Torna al calendario</Link>
+            </Button>
+          </div>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => goToDay(addDays(parsedDate, 1))}
+          >
+            <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
-      )}
+      </CardHeader>
+      <CardContent>
+        <div className="flex gap-2 mb-4">
+          <Button onClick={handleOpenNewOrderModal}>
+            <PlusCircle className="mr-2 h-4 w-4" /> Aggiungi Ordine
+          </Button>
+          <Button variant="outline" onClick={() => setIsApartmentModalOpen(true)}>
+            Aggiungi Appartamento
+          </Button>
+        </div>
+        
+        <div className="space-y-4">
+          {isLoading && (
+            <>
+              <Skeleton className="h-24 w-full rounded-lg" />
+              <Skeleton className="h-24 w-full rounded-lg" />
+              <Skeleton className="h-24 w-full rounded-lg" />
+            </>
+          )}
+          {!isLoading && combinedOrders.length === 0 && (
+            <CardDescription className="text-center py-8">
+              Nessun ordine programmato per questo giorno.
+            </CardDescription>
+          )}
+          {!isLoading &&
+            combinedOrders.map((order) => (
+              <Card key={order.id} className={`flex items-center p-4 ${order.isCompleted ? 'bg-muted/50' : ''}`}>
+                <div className="flex-1 space-y-1">
+                  <p className="font-semibold">
+                    {order.employee?.name || 'Cliente non assegnato'}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {order.apartment?.name || 'Appartamento non specificato'}
+                  </p>
+                  <p className="text-sm">{order.details}</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handleOpenEditOrderModal(order)}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    onClick={() => handleOpenDeleteModal(order)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </Card>
+            ))}
+        </div>
+      </CardContent>
 
-      {/* Modals */}
+      <OrderModal
+        isOpen={isOrderModalOpen}
+        onClose={() => setIsOrderModalOpen(false)}
+        onSubmit={handleSubmitOrder}
+        defaultValues={selectedOrder}
+        employees={employees || []}
+        apartments={apartments || []}
+      />
+
       <ApartmentModal
         isOpen={isApartmentModalOpen}
         onClose={() => setIsApartmentModalOpen(false)}
-        onSubmit={handleApartmentSubmit}
-        apartment={currentApartment || {
-          id: 0,
-          name: "",
-          cleaning_date: formattedDateForInput,
-          start_time: null,
-          end_time: null,
-          status: "Da Fare",
-          payment_status: "Da Pagare",
-          notes: null,
-          employees: []
-        }}
-        employees={employees}
+        // onSubmit è gestito internamente dal modale
       />
 
       <ConfirmDeleteModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleDeleteConfirm}
-        message={`Sei sicuro di voler eliminare l'ordine "${apartmentToDelete?.name}"?`}
+        title="Elimina Ordine"
+        description="Sei sicuro di voler eliminare questo ordine? Questa azione non può essere annullata."
       />
-    </>
+    </Card>
   );
-}
+};
+
+export default CalendarDayPage;

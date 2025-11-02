@@ -4,20 +4,28 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { PlusCircle } from 'lucide-react';
 import EmployeeCard from '@/components/ui/data-display/EmployeeCard';
-import { Employee } from '@/../../shared/schema';
-import { useApi } from '@/lib/api'; // Importa il nuovo hook
+import { Employee } from '@shared/schema'; // Usa l'alias @shared
+import { useApi } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import EmployeeModal, {
+//
+// 
+// --- MODIFICA QUI ---
+// Mettiamo EmployeeModal tra parentesi graffe { }
+import {
+  EmployeeModal,
   EmployeeFormData,
 } from '@/components/ui/modals/EmployeeModal';
+//
+//
+//
 import ConfirmDeleteModal from '@/components/ui/modals/ConfirmDeleteModal';
 import { Link } from 'react-router-dom';
 
 const EmployeesPage = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { apiRequest } = useApi(); // Usa il nuovo hook
+  const { apiRequest } = useApi();
 
   const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -29,7 +37,7 @@ const EmployeesPage = () => {
   const { data: employees, isLoading } = useQuery<Employee[]>({
     queryKey: ['employees'],
     queryFn: () => apiRequest('GET', '/employees'),
-    enabled: !!apiRequest, // Attendi che apiRequest sia pronto
+    enabled: !!apiRequest,
   });
 
   // Mutazione per creare un dipendente

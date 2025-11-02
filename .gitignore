@@ -1,0 +1,15 @@
+# Dipendenze
+node_modules/
+
+# File di build
+dist/
+
+# File di ambiente (Contengono segreti!)
+.env
+client/.env
+server/.env
+
+# Cartelle IDE e di sistema
+.idea/
+.vscode/
+.DS_Store

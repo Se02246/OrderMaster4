@@ -35,13 +35,13 @@ const __dirname = path.dirname(__filename);
 const clientDistPath = path.resolve(__dirname, '..', 'dist', 'client');
 
 // Middleware per servire i file statici del client (percorso di build: dist/client)
-// Questo risolve l'errore "app.use() requires a middleware function" in produzione.
 app.use(express.static(clientDistPath));
 
 // Gestione delle SPA: serve index.html per tutte le altre richieste non gestite
-// (essenziale per React Router/routing lato client)
 app.get('*', (req, res) => {
-  res.sendFile(path.join(clientDistPath, 'index.html'));
+  // CORREZIONE: Aggiunto 'client' nel percorso per trovare index.html 
+  // (rispetta la struttura di build annidata dedotta dall'output)
+  res.sendFile(path.join(clientDistPath, 'client', 'index.html'));
 });
 
 app.listen(port, () => {

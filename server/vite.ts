@@ -3,12 +3,10 @@
 import { Request, Response, NextFunction } from 'express';
 import { createServer } from 'vite';
 import path from 'path';
-// 🚨 CORREZIONE 1: Importa i moduli necessari per definire __dirname in ESM
 import { fileURLToPath } from 'url';
-// 🚨 CORREZIONE 2: Importa express per usare express.static() in produzione
 import express from 'express'; 
 
-// 🚨 CORREZIONE 1: Definizione di __dirname e __filename per ambienti ES Module (ESM)
+// 1. Definisce __dirname per l'ambiente ES Module (necessario per path.resolve)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -23,21 +21,34 @@ const viteMiddleware = async (req: Request, res: Response, next: NextFunction) =
     vite.middlewares(req, res, next);
   } else {
     // Produzione: servi i file statici e passa il resto a index.html
-    // Usiamo la __dirname definita per l'ambiente ESM.
-    const distPath = path.resolve(__dirname, '../client'); 
     
-    // Servi i file statici (CSS, JS, immagini) da dist/client/assets
+    // 🚨 CORREZIONE: puntiamo alla sottocartella 'client' all'interno di 'dist' 
+    // (__dirname punta già a 'dist').
+    const distPath = path.resolve(__dirname, './client'); 
+    
+    // 2. Middleware per servire i file statici
     const staticMiddleware = express.static(distPath, {
-      index: false, 
+      index: false, // Impedisce a express.static di servire index.html come default
+      maxAge: '1y' // Cache per i file statici
     });
     
-    staticMiddleware(req, res, () => {
-      // Per tutte le altre richieste (es. /calendar, /employees),
-      // invia l'index.html principale per il routing lato client.
-      res.sendFile(path.resolve(distPath, 'index.html'));
+    staticMiddleware(req, res, (err) => {
+      if (err) {
+        console.error('Static file error:', err);
+        return res.status(500).send('Internal Server Error');
+      }
+      
+      // 3. Per tutte le altre richieste (ad esempio /calendar, /employees),
+      // invia l'index.html principale per il routing lato client (Single Page App).
+      res.sendFile(path.resolve(distPath, 'index.html'), (err) => {
+          if (err) {
+              // Potrebbe verificarsi se index.html non esiste nel percorso atteso
+              console.error('Error sending index.html:', err);
+              res.status(500).send('Could not find index.html');
+          }
+      });
     });
   }
 };
 
-// MODIFICA: usa export default
 export default viteMiddleware;

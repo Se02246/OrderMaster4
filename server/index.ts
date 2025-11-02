@@ -1,5 +1,3 @@
-// se02246/ordermaster4/OrderMaster4-impl_login/server/index.ts
-
 import 'dotenv/config';
 import express from 'express';
 import path from 'path';
@@ -22,23 +20,22 @@ app.use(clerkMiddleware);
 // Rotte API
 app.use('/api', apiRoutes);
 
-// --- CODICE PER LA PRODUZIONE (CORREZIONE UI FINALE) ---
+// --- CODICE PER LA PRODUZIONE (CORREZIONE UI E PATH) ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Trova la cartella di build del client (contiene /assets e client/index.html)
+// Trova la cartella di build del client (dist/client)
 const clientDistPath = path.resolve(__dirname, '..', 'dist', 'client');
 
-// 1. CORREZIONE: Serve tutti i file statici dalla cartella di base di Vite (dist/client).
-// Questo gestisce le richieste per /assets/ (CSS/JS) generate con base: '/'.
+// 1. Serve tutti i file statici dalla cartella di base di Vite (dist/client).
+// Gestisce /assets/index-....css e altri asset.
 app.use(express.static(clientDistPath));
 
 // 2. Gestione delle SPA: invia 'index.html' per tutte le altre richieste.
-// Usa il percorso annidato 'client/index.html' come confermato dai log di build.
 app.get('*', (req, res) => {
-  // Nota: se il file sw.js o altri asset pubblici non vengono trovati,
-  // la riga express.static sopra dovrebbe coprirli.
-  res.sendFile(path.join(clientDistPath, 'client', 'index.html'));
+  // ⬇️ CORREZIONE DEFINITIVA DEL PATH:
+  // Cerca index.html direttamente nella cartella di distribuzione, non nella sottocartella 'client'.
+  res.sendFile(path.join(clientDistPath, 'index.html'));
 });
 
 app.listen(port, () => {

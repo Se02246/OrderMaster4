@@ -1,5 +1,3 @@
-// se02246/ordermaster4/OrderMaster4-impl_login/server/index.ts
-
 import 'dotenv/config';
 import express from 'express';
 import path from 'path';
@@ -8,7 +6,6 @@ import { fileURLToPath } from 'url';
 // Importa solo il middleware di Clerk e le rotte
 import * as middlewareModule from './middleware'; 
 import { apiRoutes } from './routes';
-// RIMUOVE QUALSIASI IMPORTAZIONE DI './vite'
 
 // Funzione helper per estrarre la funzione di default
 const safeExtractDefault = (module: any) => module.default || module;
@@ -26,24 +23,22 @@ app.use(clerkMiddleware);
 // Rotte API
 app.use('/api', apiRoutes);
 
-// --- CODICE PER LA PRODUZIONE (RISOLVE IL 502) ---
+// --- CODICE PER LA PRODUZIONE (CORREZIONE UI) ---
 // Definisce __dirname per l'ambiente ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-// Trova la cartella di build del client
+// Trova la cartella di build del client (contiene index.html e la cartella assets)
 const clientDistPath = path.resolve(__dirname, '..', 'dist', 'client');
 
-// 1. Serve gli asset da 'dist/client' (es. /assets/index-....js)
+// 1. Serve tutti i file statici dalla cartella di build di Vite (dist/client).
+// Questo assicura che gli asset come il file CSS di Tailwind vengano caricati correttamente.
 app.use(express.static(clientDistPath));
 
-// 2. Serve i file public da 'dist/client/client' (es. /sw.js, /index.html)
-// Questo risolve l'errore MIME type per sw.js e il 404 per index.html
-app.use(express.static(path.join(clientDistPath, 'client')));
-
-// 3. Gestione delle SPA: invia 'index.html' dalla sottocartella 'client'
-// per tutte le altre richieste (es. /calendar, /employees)
+// 2. Gestione delle SPA (Single Page Application): invia 'index.html' per tutte le altre richieste.
+// Questo è cruciale per il routing lato client (es. /calendar, /employees).
 app.get('*', (req, res) => {
-  res.sendFile(path.join(clientDistPath, 'client', 'index.html'));
+  // Invia l'index.html dalla radice della cartella di distribuzione (clientDistPath)
+  res.sendFile(path.join(clientDistPath, 'index.html'));
 });
 
 app.listen(port, () => {

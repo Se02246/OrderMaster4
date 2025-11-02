@@ -1,30 +1,16 @@
 // se02246/ordermaster4/OrderMaster4-impl_login/client/src/components/ui/layout/Header.tsx
-
-import { PanelLeft, Search } from 'lucide-react';
-import { UserButton } from '@clerk/clerk-react'; // Importa UserButton
-
+import { PanelLeft } from 'lucide-react';
+import { UserButton } from '@clerk/clerk-react'; 
 import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbLink,
   BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { NavLink } from 'react-router-dom'; // Usato per il breadcrumb
+import { NavLink } from 'react-router-dom';
 
-// Definiamo le props che App.tsx passerà
+// Props che arrivano da App.tsx
 interface HeaderProps {
   toggleSidebar: () => void;
 }
@@ -44,7 +30,7 @@ export function Header({ toggleSidebar }: HeaderProps) {
         <span className="sr-only">Toggle Menu</span>
       </Button>
 
-      {/* Breadcrumb (Esempio, puoi renderlo dinamico se vuoi) */}
+      {/* Breadcrumb */}
       <Breadcrumb className="hidden md:flex">
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -52,19 +38,11 @@ export function Header({ toggleSidebar }: HeaderProps) {
               <NavLink to="/">Dashboard</NavLink>
             </BreadcrumbLink>
           </BreadcrumbItem>
-          {/* Esempio di breadcrumb attivo
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>Pagina Corrente</BreadcrumbPage>
-          </BreadcrumbItem>
-          */}
         </BreadcrumbList>
       </Breadcrumb>
 
-      {/* Spazio vuoto per spingere l'avatar a destra */}
-      <div className="relative ml-auto flex-1 md:grow-0">
-        {/* Puoi rimettere la search bar qui se serve */}
-      </div>
+      {/* Spazio per spingere l'avatar a destra */}
+      <div className="relative ml-auto flex-1 md:grow-0"></div>
 
       {/* Avatar Utente - Gestito da Clerk */}
       <UserButton afterSignOutUrl="/sign-in" />

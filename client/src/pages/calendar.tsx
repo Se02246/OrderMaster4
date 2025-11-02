@@ -1,38 +1,85 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import CalendarGrid from "@/components/ui/data-display/CalendarGrid";
-import { ApartmentWithAssignedEmployees } from "@shared/schema";
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import CalendarGrid from '@/components/ui/data-display/CalendarGrid';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { addMonths, subMonths, startOfMonth, endOfMonth, format } from 'date-fns';
+import { it } from 'date-fns/locale';
+import { Order } from '@/../../shared/schema';
+import { useApi } from '@/lib/api'; // Importa il nuovo hook
+import { useNavigate } from 'react-router-dom';
 
-export default function Calendar() {
-  const today = new Date();
-  const [year, setYear] = useState(today.getFullYear());
-  const [month, setMonth] = useState(today.getMonth() + 1); // JavaScript months are 0-indexed
-  
-  // Fetch apartment data for current month
-  const { data: apartments = [], isLoading } = useQuery<ApartmentWithAssignedEmployees[]>({
-    queryKey: [`/api/calendar/${year}/${month}`],
+const CalendarPage = () => {
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const { apiRequest } = useApi(); // Usa il nuovo hook
+  const navigate = useNavigate();
+
+  const firstDay = startOfMonth(currentDate);
+  const lastDay = endOfMonth(currentDate);
+
+  // Formatta le date per la query API
+  const startDate = format(firstDay, 'yyyy-MM-dd');
+  const endDate = format(lastDay, 'yyyy-MM-dd');
+
+  // Query per ottenere gli ordini del mese
+  const { data: orders, isLoading } = useQuery<Order[]>({
+    queryKey: ['orders', startDate, endDate],
+    queryFn: () => apiRequest('GET', `/orders?start=${startDate}&end=${endDate}`),
+    enabled: !!apiRequest, // Attendi che apiRequest sia pronto
   });
 
-  const handleMonthChange = (newYear: number, newMonth: number) => {
-    setYear(newYear);
-    setMonth(newMonth);
+  const goToPreviousMonth = () => {
+    setCurrentDate((prev) => subMonths(prev, 1));
   };
 
+  const goToNextMonth = () => {
+    setCurrentDate((prev) => addMonths(prev, 1));
+  };
+
+  const goToToday = () => {
+    setCurrentDate(new Date());
+  };
+  
+  const goToAddOrder = () => {
+    // Reindirizza al giorno odierno per aggiungere un ordine
+    navigate(`/calendar/${format(new Date(), 'yyyy-MM-dd')}`);
+  }
+
   return (
-    <div>
-      {isLoading ? (
-        <div className="text-center py-8">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#70fad3]"></div>
-          <p className="mt-2 text-gray-600">Caricamento calendario...</p>
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <Button variant="outline" onClick={goToToday}>
+            Oggi
+          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={goToPreviousMonth}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <CardTitle className="text-xl text-center capitalize w-32">
+              {format(currentDate, 'MMMM yyyy', { locale: it })}
+            </CardTitle>
+            <Button variant="outline" size="icon" onClick={goToNextMonth}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+          <Button onClick={goToAddOrder}>Aggiungi Ordine</Button>
         </div>
-      ) : (
+      </CardHeader>
+      <CardContent>
         <CalendarGrid
-          year={year}
-          month={month}
-          apartments={apartments}
-          onMonthChange={handleMonthChange}
+          currentDate={currentDate}
+          orders={orders || []}
+          isLoading={isLoading}
         />
-      )}
-    </div>
+      </CardContent>
+    </Card>
   );
-}
+};
+
+export default CalendarPage;

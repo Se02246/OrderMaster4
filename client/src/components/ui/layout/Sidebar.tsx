@@ -1,84 +1,101 @@
+// se02246/ordermaster4/OrderMaster4-impl_login/client/src/components/ui/layout/Sidebar.tsx
+
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { Home, Calendar, Users, LineChart, Settings } from 'lucide-react';
-// Importa NavLink e useLocation da react-router-dom
-import { NavLink, useLocation } from 'react-router-dom'; 
-import { cn } from '@/lib/utils'; // Importa cn per unire le classi
+  Bell,
+  Calendar,
+  Home,
+  LineChart,
+  Package2,
+  Users,
+} from 'lucide-react';
+import { NavLink } from 'react-router-dom';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger, // Rimosso SheetTrigger, il controllo è in App.tsx
+} from '@/components/ui/sheet';
 
-// Helper per la navigazione
-const NavItem = ({
-  to,
-  icon: Icon,
-  label,
-}: {
-  to: string;
-  icon: React.ElementType;
-  label: string;
-}) => {
-  const location = useLocation();
-  // Controlla se il percorso base è attivo (es. /employees/1 deve attivare /employees)
-  const isActive = location.pathname === to || (to !== '/' && location.pathname.startsWith(to));
+// Definiamo le props che App.tsx passerà
+interface SidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
 
+// Componente NavLink per gestire lo stato attivo
+const SidebarNavLink = ({ to, icon: Icon, label }: { to: string, icon: React.ElementType, label: string }) => (
+  <NavLink
+    to={to}
+    end // 'end' assicura che solo la rotta esatta sia attiva (es. / non matcha /calendar)
+    className={({ isActive }) =>
+      `flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary ${
+        isActive ? 'bg-muted text-primary' : ''
+      }`
+    }
+  >
+    <Icon className="h-4 w-4" />
+    {label}
+  </NavLink>
+);
+
+// Contenuto effettivo della navigazione
+const NavigationContent = () => (
+  <nav className="grid items-start gap-2 text-sm font-medium">
+    <SidebarNavLink to="/" icon={Home} label="Dashboard" />
+    <SidebarNavLink to="/calendar" icon={Calendar} label="Calendario" />
+    <SidebarNavLink to="/employees" icon={Users} label="Dipendenti" />
+    <SidebarNavLink to="/statistics" icon={LineChart} label="Statistiche" />
+    
+    {/* Esempio di link con badge (se necessario) */}
+    {/*
+    <NavLink
+      to="#"
+      className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+    >
+      <Bell className="h-4 w-4" />
+      Notifiche
+      <Badge className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full">
+        6
+      </Badge>
+    </NavLink>
+    */}
+  </nav>
+);
+
+// Componente Sidebar principale
+export function Sidebar({ isOpen, onClose }: SidebarProps) {
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <NavLink
-          to={to}
-          className={cn(
-            'flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8',
-            isActive && 'bg-accent text-accent-foreground', // Stile per link attivo
-          )}
-        >
-          <Icon className="h-5 w-5" />
-          <span className="sr-only">{label}</span>
-        </NavLink>
-      </TooltipTrigger>
-      <TooltipContent side="right">{label}</TooltipContent>
-    </Tooltip>
-  );
-};
-
-const Sidebar = () => {
-  return (
-    <TooltipProvider>
-      <aside className="fixed inset-y-0 left-0 z-10 hidden w-14 flex-col border-r bg-background sm:flex">
-        <nav className="flex flex-col items-center gap-4 px-2 sm:py-5">
-          {/* Logo - puoi rimettere il tuo Package2 se lo avevi */}
-          <NavLink
-            to="/"
-            className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-lg font-semibold text-primary-foreground md:h-8 md:w-8"
-          >
-            <span className="">CM</span>
-            <span className="sr-only">Clean Master</span>
+    <>
+      {/* 1. Sidebar Desktop (Fissa) */}
+      <div className="hidden border-r bg-muted/40 md:flex md:flex-col md:fixed md:inset-y-0 md:w-64">
+        <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
+          <NavLink to="/" className="flex items-center gap-2 font-semibold">
+            <Package2 className="h-6 w-6" />
+            <span className="">OrderMaster</span>
           </NavLink>
-          
-          <NavItem to="/" icon={Home} label="Dashboard" />
-          <NavItem to="/calendar" icon={Calendar} label="Calendario" />
-          <NavItem to="/employees" icon={Users} label="Clienti" />
-          <NavItem to="/statistics" icon={LineChart} label="Statistiche" />
-        </nav>
-        <nav className="mt-auto flex flex-col items-center gap-4 px-2 sm:py-5">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              {/* Link alle impostazioni (non ancora esistente ma utile) */}
-              <NavLink
-                to="/settings"
-                className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
-              >
-                <Settings className="h-5 w-5" />
-                <span className="sr-only">Impostazioni</span>
-              </NavLink>
-            </TooltipTrigger>
-            <TooltipContent side="right">Impostazioni</TooltipContent>
-          </Tooltip>
-        </nav>
-      </aside>
-    </TooltipProvider>
+        </div>
+        <div className="flex-1 overflow-auto py-2">
+          <NavigationContent />
+        </div>
+      </div>
+
+      {/* 2. Sidebar Mobile (Sheet a scorrimento) */}
+      <Sheet open={isOpen} onOpenChange={onClose}>
+        <SheetContent side="left" className="flex flex-col p-0">
+          <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
+            <NavLink to="/" className="flex items-center gap-2 font-semibold" onClick={onClose}>
+              <Package2 className="h-6 w-6" />
+              <span className="">OrderMaster</span>
+            </NavLink>
+          </div>
+          <div className="flex-1 overflow-auto py-2" onClick={onClose}>
+            <NavigationContent />
+          </div>
+        </SheetContent>
+      </Sheet>
+    </>
   );
-};
+}
 
 export default Sidebar;

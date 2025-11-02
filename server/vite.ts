@@ -22,28 +22,31 @@ const viteMiddleware = async (req: Request, res: Response, next: NextFunction) =
   } else {
     // Produzione: servi i file statici e passa il resto a index.html
     
-    // distPath è '/opt/render/project/src/dist/client'
-    const distPath = path.resolve(__dirname, './client'); 
+    // Path alla root dei file client compilati (dove si trova la cartella 'assets')
+    const clientRootPath = path.resolve(__dirname, './client'); 
     
-    // 2. Middleware per servire i file statici (CSS, JS, assets)
-    // Questi sono in dist/client/assets/
-    const staticMiddleware = express.static(distPath, {
-      index: false, // Impedisce a express.static di servire index.html come default
+    // Path al file index.html annidato (dist/client/client/index.html)
+    const indexHtmlPath = path.resolve(clientRootPath, 'client/index.html'); 
+    
+    // 2. Middleware per servire i file statici (JS, CSS, Immagini)
+    const staticMiddleware = express.static(clientRootPath, {
+      index: false, 
       maxAge: '1y' 
     });
     
+    // 3. Esegue staticMiddleware. Se un asset viene trovato (ad es. /assets/...), la richiesta finisce qui.
     staticMiddleware(req, res, (err) => {
       if (err) {
         console.error('Static file error:', err);
         return res.status(500).send('Internal Server Error');
       }
       
-      // 3. Per tutte le altre richieste (SPA routing), invia l'index.html
-      // 🚨 CORREZIONE: puntiamo al percorso annidato 'client/index.html'
-      res.sendFile(path.resolve(distPath, 'client/index.html'), (err) => {
+      // 4. Fallback per tutte le altre richieste (SPA routing)
+      // Se un file non statico viene richiesto (ad esempio / o /employees), invia l'index.html
+      res.sendFile(indexHtmlPath, (err) => {
           if (err) {
-              // L'errore ENOENT originale era qui
               console.error('Error sending index.html:', err);
+              console.error('Failed to serve SPA route:', req.path); 
               res.status(404).send('Not Found');
           }
       });

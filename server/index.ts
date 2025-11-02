@@ -3,7 +3,7 @@ import express from 'express';
 
 import { clerkMiddleware } from './middleware';
 import { apiRoutes } from './routes';
-import { viteMiddleware } from './vite'; // Corretto con { }
+import viteMiddleware from './vite'; // MODIFICA: Rimosse le graffe
 
 const app = express();
 const port = process.env.PORT || 3000;

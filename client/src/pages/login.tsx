@@ -96,7 +96,7 @@ export default function LoginPage() {
               <Alert variant="destructive" className="mb-4">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription className="text-xs">
-                  Attenzione: al momento non è disponibile il recupero password. Assicurati di salvare le tue credenziali.
+                  Attenzione: al momento non è disponibile il recupero password. Assicurati di salvare le tue credenziali!
                 </AlertDescription>
               </Alert>
               {/* --- FINE MODIFICA --- */}

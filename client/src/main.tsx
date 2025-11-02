@@ -17,7 +17,7 @@ if (!PUBLISHABLE_KEY) {
   throw new Error('Manca la chiave pubblicabile di Clerk (VITE_CLERK_PUBLISHABLE_KEY)');
 }
 
-// Registra il Service Worker (codice esistente)
+// Registra il Service Worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     // Assicurati che il file sw.js sia in /client/public/sw.js
@@ -35,9 +35,7 @@ if (container) {
   
   root.render(
     <React.StrictMode>
-      {/* Questa struttura di provider è FONDAMENTALE.
-        Mancando QueryClientProvider l'app crasha e la UI si corrompe.
-      */}
+      {/* QUESTA STRUTTURA È OBBLIGATORIA */}
       <QueryClientProvider client={queryClient}>
         <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
             <App />

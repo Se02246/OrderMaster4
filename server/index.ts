@@ -1,9 +1,12 @@
+// se02246/ordermaster4/OrderMaster4-impl_login/server/index.ts
+
 import 'dotenv/config';
 import express from 'express';
 
-import { clerkMiddleware } from './middleware';
+// 🚨 CORREZIONE: Cambia da import nominato a import default per clerkMiddleware
+import clerkMiddleware from './middleware'; 
 import { apiRoutes } from './routes';
-import viteMiddleware from './vite'; // MODIFICA: Rimosse le graffe
+import viteMiddleware from './vite'; 
 
 const app = express();
 const port = process.env.PORT || 3000;

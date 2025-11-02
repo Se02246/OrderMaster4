@@ -22,14 +22,14 @@ const viteMiddleware = async (req: Request, res: Response, next: NextFunction) =
   } else {
     // Produzione: servi i file statici e passa il resto a index.html
     
-    // 🚨 CORREZIONE: puntiamo alla sottocartella 'client' all'interno di 'dist' 
-    // (__dirname punta già a 'dist').
+    // distPath è '/opt/render/project/src/dist/client'
     const distPath = path.resolve(__dirname, './client'); 
     
-    // 2. Middleware per servire i file statici
+    // 2. Middleware per servire i file statici (CSS, JS, assets)
+    // Questi sono in dist/client/assets/
     const staticMiddleware = express.static(distPath, {
       index: false, // Impedisce a express.static di servire index.html come default
-      maxAge: '1y' // Cache per i file statici
+      maxAge: '1y' 
     });
     
     staticMiddleware(req, res, (err) => {
@@ -38,13 +38,13 @@ const viteMiddleware = async (req: Request, res: Response, next: NextFunction) =
         return res.status(500).send('Internal Server Error');
       }
       
-      // 3. Per tutte le altre richieste (ad esempio /calendar, /employees),
-      // invia l'index.html principale per il routing lato client (Single Page App).
-      res.sendFile(path.resolve(distPath, 'index.html'), (err) => {
+      // 3. Per tutte le altre richieste (SPA routing), invia l'index.html
+      // 🚨 CORREZIONE: puntiamo al percorso annidato 'client/index.html'
+      res.sendFile(path.resolve(distPath, 'client/index.html'), (err) => {
           if (err) {
-              // Potrebbe verificarsi se index.html non esiste nel percorso atteso
+              // L'errore ENOENT originale era qui
               console.error('Error sending index.html:', err);
-              res.status(500).send('Could not find index.html');
+              res.status(404).send('Not Found');
           }
       });
     });

@@ -1,33 +1,29 @@
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
-import themePlugin from "@replit/vite-plugin-shadcn-theme-json";
-import path from "path";
-import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import path from 'path'
 
+// https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [
-    react(),
-    runtimeErrorOverlay(),
-    themePlugin(),
-    ...(process.env.NODE_ENV !== "production" &&
-    process.env.REPL_ID !== undefined
-      ? [
-          await import("@replit/vite-plugin-cartographer").then((m) =>
-            m.cartographer(),
-          ),
-        ]
-      : []),
-  ],
+  plugins: [react()],
+  // 1. Rimuovi `root: 'client'`.
+  //    Ora Vite opererà dalla cartella principale e troverà `node_modules`.
+  
   resolve: {
     alias: {
-      "@": path.resolve(import.meta.dirname, "client", "src"),
-      "@shared": path.resolve(import.meta.dirname, "shared"),
-      "@assets": path.resolve(import.meta.dirname, "attached_assets"),
+      // 2. L'alias per '@' è ancora corretto, punta a client/src
+      '@': path.resolve(__dirname, './client/src'),
     },
   },
-  root: path.resolve(import.meta.dirname, "client"),
   build: {
-    outDir: path.resolve(import.meta.dirname, "dist/public"),
+    // 3. Modifica outDir perché sia relativo alla root.
+    outDir: 'dist/client',
     emptyOutDir: true,
+    
+    // 4. Aggiungi questo. È il passo cruciale:
+    //    Dice a Vite dove trovare il file HTML di input,
+    //    visto che non è più nella root.
+    rollupOptions: {
+      input: 'client/index.html'
+    }
   },
-});
+})

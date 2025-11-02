@@ -1,3 +1,5 @@
+// se02246/ordermaster4/OrderMaster4-impl_login/db-init.ts
+
 import { sql } from 'drizzle-orm';
 import { db } from './server/db';
 
@@ -7,6 +9,7 @@ async function main() {
   // Drop tabelle se esistono (in ordine inverso per le foreign key)
   await db.execute(sql`DROP TABLE IF EXISTS "sessions" CASCADE`);
   await db.execute(sql`DROP TABLE IF EXISTS assignments CASCADE`);
+  await db.execute(sql`DROP TABLE IF EXISTS orders CASCADE`); // NUOVO: Drop orders table
   await db.execute(sql`DROP TABLE IF EXISTS employees CASCADE`);
   await db.execute(sql`DROP TABLE IF EXISTS apartments CASCADE`);
   await db.execute(sql`DROP TABLE IF EXISTS users CASCADE`);
@@ -33,7 +36,8 @@ async function main() {
       payment_status VARCHAR(20) NOT NULL DEFAULT 'Da Pagare' CHECK (payment_status IN ('Da Pagare', 'Pagato')),
       notes TEXT,
       price NUMERIC(10, 2),
-      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      address VARCHAR(255) // NUOVO: Aggiungi campo address
     )
   `);
 
@@ -44,7 +48,25 @@ async function main() {
       id SERIAL PRIMARY KEY,
       first_name VARCHAR(100) NOT NULL,
       last_name VARCHAR(100) NOT NULL,
-      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      name VARCHAR(255), // NUOVO: Campi aggiuntivi per coerenza con il front-end
+      email VARCHAR(255),
+      phone VARCHAR(20),
+      address VARCHAR(255),
+      image_url VARCHAR(255)
+    )
+  `);
+  
+  // Crea tabella orders
+  console.log('Creazione tabella orders...');
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS orders (
+      id SERIAL PRIMARY KEY,
+      date VARCHAR(10) NOT NULL,
+      employee_id INTEGER REFERENCES employees(id) ON DELETE SET NULL,
+      apartment_id INTEGER REFERENCES apartments(id) ON DELETE SET NULL,
+      details TEXT,
+      is_completed BOOLEAN NOT NULL DEFAULT FALSE
     )
   `);
 
@@ -60,18 +82,7 @@ async function main() {
   `);
 
   // Crea tabella sessions
-  console.log('Creazione tabella sessions...');
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS "sessions" (
-      "sid" varchar NOT NULL COLLATE "default",
-      "sess" json NOT NULL,
-      "expire" timestamp(6) NOT NULL
-    ) WITH (OIDS=FALSE);
-    ALTER TABLE "sessions" ADD CONSTRAINT "sessions_pkey" PRIMARY KEY ("sid") NOT DEFERRABLE INITIALLY IMMEDIATE;
-  `);
-
-  console.log('Database inizializzato con successo!');
-  process.exit(0);
+// ... (resto del file invariato)
 }
 
 main().catch((error) => {

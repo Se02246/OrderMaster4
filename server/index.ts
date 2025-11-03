@@ -6,8 +6,8 @@ import { fileURLToPath } from "url";
 import { configureVite } from "./vite.js";
 import { app as routesApp } from "./routes.js";
 // 🚨 CORREZIONE: 
-// Importa 'getRequestListener' (la funzione corretta) da '@hono/node-server'
-import { getRequestListener } from '@hono/node-server'; 
+// Importa 'handle' dall'adattatore specifico per Express
+import { handle } from '@hono/node-server/express'; 
 
 const app = express();
 const port = process.env.PORT || 10000;
@@ -23,8 +23,8 @@ app.use(express.urlencoded({ extended: true }));
 
 // Configurazione API (gestita da Hono)
 // 🚨 CORREZIONE: 
-// Usa getRequestListener(routesApp.fetch) per convertire l'app Hono
-app.use("/api", getRequestListener(routesApp.fetch));
+// Usa 'handle(routesApp)' invece di 'getRequestListener'
+app.use("/api", handle(routesApp));
 
 // Configurazione Client (Vite o statico)
 if (process.env.NODE_ENV === "production") {

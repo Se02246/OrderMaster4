@@ -5,11 +5,9 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { configureVite } from "./vite.js";
 
-// 🚨 CORREZIONE: Importa l'app Hono (da routes.ts) come export di default
-import routesApp from "./routes.js";
-
-// 🚨 Gli import per 'configureRoutes' e 'authMiddleware' sono stati rimossi
-//    perché 'routesApp' (Hono) gestisce il proprio routing e autenticazione.
+// 🚨 CORREZIONE: 
+// Importa l'export nominato 'app' da routes.ts e rinominalo in 'routesApp'
+import { app as routesApp } from "./routes.js";
 
 const app = express();
 const port = process.env.PORT || 10000;
@@ -24,7 +22,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Configurazione API (gestita da Hono)
-// 🚨 CORREZIONE: Usa l'app Hono importata come middleware per tutte le rotte /api
+// Usa l'app Hono importata (ora chiamata 'routesApp')
 app.use("/api", routesApp);
 
 // Configurazione Client (Vite o statico)

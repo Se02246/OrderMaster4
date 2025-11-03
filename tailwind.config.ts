@@ -1,11 +1,11 @@
+// se02246/ordermaster4/OrderMaster4-impl_login/tailwind.config.ts
 import type { Config } from "tailwindcss";
 
 export default {
   darkMode: ["class"],
-  // 🚨 CORREZIONE: Aggiornato per puntare alla cartella 'client'
+  // 🚨 CORREZIONE: Usa un content path più aggressivo per includere TUTTI i file
   content: [
-    "./client/index.html",
-    "./client/src/**/*.{js,jsx,ts,tsx}",
+    "./client/**/*.{js,jsx,ts,tsx,html}",
   ],
   theme: {
     extend: {

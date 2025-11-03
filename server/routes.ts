@@ -1,5 +1,4 @@
 import { Hono } from 'hono';
-import { handle } from 'hono/node-server';
 import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
 import { db } from './db.js'; // 🚨 CORREZIONE: Aggiunto .js

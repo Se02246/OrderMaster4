@@ -6,8 +6,8 @@ import { fileURLToPath } from "url";
 import { configureVite } from "./vite.js";
 import { app as routesApp } from "./routes.js";
 // 🚨 CORREZIONE: 
-// Importa 'handle' dalla radice del pacchetto
-import { handle } from 'hono/node-server';
+// Importa 'handle' dal pacchetto @hono/node-server
+import { handle } from '@hono/node-server';
 
 const app = express();
 const port = process.env.PORT || 10000;
@@ -24,7 +24,7 @@ app.use(express.urlencoded({ extended: true }));
 // Configurazione API (gestita da Hono)
 // 🚨 CORREZIONE: 
 // Configurazione API (gestita da Hono)
-// Usa 'handle' per collegare Hono (routesApp) a Express (app)
+// Collega Hono (routesApp) a Express
 app.use("/api", handle(routesApp));
 
 // Configurazione Client (Vite o statico)

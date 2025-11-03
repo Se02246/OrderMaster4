@@ -1,43 +1,51 @@
-import 'dotenv/config';
-import express from 'express';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-// Importa solo il middleware di Clerk e le rotte
-import * as middlewareModule from './middleware'; 
-import { apiRoutes } from './routes';
-
-const safeExtractDefault = (module: any) => module.default || module;
-const clerkMiddleware = safeExtractDefault(middlewareModule);
+import "dotenv/config";
+import express from "express";
+import cors from "cors";
+import path from "path";
+import { fileURLToPath } from "url";
+import { configureVite } from "./vite.js";
+import { configureRoutes } from "./routes.js";
+import { authMiddleware } from "./middleware.js";
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 10000;
 
-app.use(express.json());
-
-// Aggiungi il middleware Clerk PRIMA delle tue rotte API
-app.use(clerkMiddleware);
-// Rotte API
-app.use('/api', apiRoutes);
-
-// --- CODICE PER LA PRODUZIONE (CORREZIONE UI E PATH) ---
+// Ottieni __dirname in un modulo ES
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Trova la cartella di build del client (dist/client)
-// CORREZIONE CHIAVE: In ambiente di produzione (dopo esbuild), __dirname è 'dist'.
-// Usare path.join(__dirname, 'client') risolve correttamente in 'dist/client'.
-const clientDistPath = path.join(__dirname, 'client');
+// Middleware di base
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// 1. Serve tutti i file statici dalla cartella di base di Vite (dist/client).
-// Gestisce /assets/index-....css e altri asset.
-app.use(express.static(clientDistPath));
+// Configurazione API (protetta da Clerk)
+const apiRoutes = express.Router();
+apiRoutes.use(authMiddleware);
+configureRoutes(apiRoutes);
+app.use("/api", apiRoutes);
 
-// 2. Gestione delle SPA: invia 'index.html' per tutte le altre richieste.
-app.get('*', (req, res) => {
-  // Ora path.join risolve in modo pulito a: /opt/render/project/src/dist/client/index.html
-  res.sendFile(path.join(clientDistPath, 'index.html'));
-});
+// Configurazione Client (Vite o statico)
+if (process.env.NODE_ENV === "production") {
+  // 🚨 INIZIO CORREZIONE 🚨
+  // In produzione, tutti i file (server e client) sono nella cartella 'dist'.
+  // Diciamo a Express di servire i file statici da quella directory.
+  
+  // __dirname qui è /opt/render/project/src/dist
+  app.use(express.static(__dirname));
+
+  // Serve l'index.html per qualsiasi rotta non-API
+  app.get("*", (req, res) => {
+    if (!req.path.startsWith("/api")) {
+      res.sendFile(path.join(__dirname, "index.html"));
+    }
+  });
+  // 🚨 FINE CORREZIONE 🚨
+
+} else {
+  // In sviluppo, usa il middleware di Vite
+  configureVite(app);
+}
 
 app.listen(port, () => {
   console.log(`Server listening on port ${port}`);

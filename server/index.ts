@@ -6,8 +6,8 @@ import { fileURLToPath } from "url";
 import { configureVite } from "./vite.js";
 import { app as routesApp } from "./routes.js";
 // 🚨 CORREZIONE: 
-// Importa 'honoMiddleware'
-import { honoMiddleware } from '@hono/node-server';
+// Importa 'handle' dal sottomodulo '/express'
+import { handle } from '@hono/node-server/express';
 
 const app = express();
 const port = process.env.PORT || 10000;
@@ -24,8 +24,8 @@ app.use(express.urlencoded({ extended: true }));
 // Configurazione API (gestita da Hono)
 // 🚨 CORREZIONE: 
 // Configurazione API (gestita da Hono)
-// Usa 'honoMiddleware'
-app.use("/api", honoMiddleware(routesApp));
+// Usa 'handle'
+app.use("/api", handle(routesApp));
 
 // Configurazione Client (Vite o statico)
 if (process.env.NODE_ENV === "production") {

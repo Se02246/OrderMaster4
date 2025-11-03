@@ -1,6 +1,7 @@
-import { getAuth as clerkGetAuth, clerkMiddleware } from '@clerk/hono';
-import { db } from './db.js'; // 🚨 CORREZIONE: Aggiunto .js
-import * as schema from '../shared/schema.js'; // 🚨 CORREZIONE: Aggiunto .js
+// 🚨 CORREZIONE: Import aggiornato da '@clerk/hono' a '@hono/clerk-auth'
+import { getAuth as clerkGetAuth, clerkMiddleware } from '@hono/clerk-auth';
+import { db } from './db.js'; 
+import * as schema from '../shared/schema.js';
 import { eq } from 'drizzle-orm';
 import { createFactory } from 'hono/factory';
 
@@ -11,8 +12,8 @@ export const clerkAuthMiddleware = factory.createMiddleware(
     publishableKey: process.env.VITE_CLERK_PUBLISHABLE_KEY,
     secretKey: process.env.CLERK_SECRET_KEY,
     // Imposta l'utente nel contesto e cerca/crea nel DB
-    signInUrl: '/sign-in', // Aggiunto per reindirizzamenti corretti
-    signUpUrl: '/sign-up', // Aggiunto per reindirizzamenti corretti
+    signInUrl: '/sign-in', 
+    signUpUrl: '/sign-up', 
     afterAuth: async (auth, c) => {
       if (auth.userId && auth.sessionClaims) {
         try {

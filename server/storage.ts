@@ -1,5 +1,7 @@
 import { eq, and, like, or, inArray, desc, asc, sql, count } from "drizzle-orm";
 import { db } from "./db";
+// Aggiunti import da date-fns
+import { getDaysInMonth, format } from "date-fns"; 
 
 import {
   apartments,
@@ -14,6 +16,34 @@ import {
   type ApartmentWithAssignedEmployees,
   type EmployeeWithAssignedApartments,
 } from "@shared/schema";
+
+// Definiamo i nuovi tipi per le statistiche
+type TopEmployee = {
+  name: string;
+  count: number;
+};
+type ProductiveDay = {
+  date: string;
+  count: number;
+};
+type OrdersByTime = {
+  day?: string;
+  month?: string;
+  count: number;
+};
+type MostProductiveMonth = {
+  month: string;
+  count: number;
+};
+type StatisticsData = {
+  totalOrders: number;
+  topEmployees: TopEmployee[];
+  busiestDays: ProductiveDay[];
+  ordersPerDayInMonth: OrdersByTime[];
+  ordersPerMonthInYear: OrdersByTime[];
+  mostProductiveMonth: MostProductiveMonth;
+};
+
 
 export interface IStorage {
   // Apartment operations
@@ -37,8 +67,8 @@ export interface IStorage {
   createAssignment(assignment: InsertAssignment): Promise<Assignment>;
   deleteAssignmentsByApartment(apartmentId: number): Promise<void>;
 
-  // Statistics operation
-  getStatistics(userId: number): Promise<any>;
+  // Modificato il tipo di ritorno
+  getStatistics(userId: number): Promise<StatisticsData>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -291,16 +321,17 @@ export class DatabaseStorage implements IStorage {
       .delete(assignments)
       .where(eq(assignments.apartment_id, apartmentId));
   }
-
-  async getStatistics(userId: number): Promise<any> {
-    // 1. Ordini totali
+  
+  // === INIZIO MODIFICA ===
+  async getStatistics(userId: number): Promise<StatisticsData> {
+    // 1. Ordini totali (Invariato)
     const [totalOrdersResult] = await db.select({
       value: count()
     }).from(apartments)
     .where(eq(apartments.user_id, userId));
     const totalOrders = totalOrdersResult.value;
 
-    // 2. Top 3 Clienti
+    // 2. Top 3 Clienti (Invariato)
     const topEmployeesResult = await db
       .select({
         employee_id: assignments.employee_id,
@@ -320,7 +351,7 @@ export class DatabaseStorage implements IStorage {
       count: Number(emp.orderCount)
     }));
 
-    // 3. Top 3 Giorni più produttivi
+    // 3. Top 3 Giorni più produttivi (Invariato)
     const busiestDaysResult = await db
         .select({
             date: apartments.cleaning_date,
@@ -337,12 +368,87 @@ export class DatabaseStorage implements IStorage {
         count: Number(day.count)
     }));
 
+    // --- NUOVE STATISTICHE ---
+
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1; // 1-based
+
+    // 4. Ordini per Mese (Anno Corrente)
+    const yearStart = `${currentYear}-01-01`;
+    const yearEnd = `${currentYear}-12-31`;
+    
+    const monthQuery = await db
+      .select({
+        month_key: sql<string>`TO_CHAR(TO_DATE(${apartments.cleaning_date}, 'YYYY-MM-DD'), 'YYYY-MM')`,
+        count: count()
+      })
+      .from(apartments)
+      .where(and(
+        eq(apartments.user_id, userId),
+        sql`${apartments.cleaning_date} >= ${yearStart}`,
+        sql`${apartments.cleaning_date} <= ${yearEnd}`
+      ))
+      .groupBy(sql`month_key`);
+
+    // Crea un template per tutti i mesi dell'anno
+    const monthsInYear = Array.from({ length: 12 }, (_, i) => 
+      `${currentYear}-${(i + 1).toString().padStart(2, '0')}`
+    );
+    
+    const monthMap = new Map(monthQuery.map(m => [m.month_key, m.count]));
+    
+    const ordersPerMonthInYear = monthsInYear.map(month => ({
+      month,
+      count: Number(monthMap.get(month) || 0)
+    }));
+
+    // 5. Mese più produttivo (derivato da 4)
+    const mostProductiveMonth = ordersPerMonthInYear.reduce(
+      (max, month) => month.count > max.count ? month : max, 
+      ordersPerMonthInYear[0] || { month: format(now, "yyyy-MM"), count: 0 }
+    );
+
+    // 6. Ordini per Giorno (Mese Corrente)
+    const daysInMonth = getDaysInMonth(now);
+    const monthStart = `${currentYear}-${currentMonth.toString().padStart(2, '0')}-01`;
+    const monthEnd = `${currentYear}-${currentMonth.toString().padStart(2, '0')}-${daysInMonth.toString().padStart(2, '0')}`;
+
+    const dayQuery = await db
+      .select({
+        date: apartments.cleaning_date,
+        count: count()
+      })
+      .from(apartments)
+      .where(and(
+        eq(apartments.user_id, userId),
+        sql`${apartments.cleaning_date} >= ${monthStart}`,
+        sql`${apartments.cleaning_date} <= ${monthEnd}`
+      ))
+      .groupBy(apartments.cleaning_date);
+
+    // Crea un template per tutti i giorni del mese
+    const daysInMonthArray = Array.from({ length: daysInMonth }, (_, i) => 
+      `${currentYear}-${currentMonth.toString().padStart(2, '0')}-${(i + 1).toString().padStart(2, '0')}`
+    );
+    
+    const dayMap = new Map(dayQuery.map(d => [d.date, d.count]));
+    
+    const ordersPerDayInMonth = daysInMonthArray.map(day => ({
+      day,
+      count: Number(dayMap.get(day) || 0)
+    }));
+    
     return {
       totalOrders,
       topEmployees,
-      busiestDays
+      busiestDays,
+      ordersPerDayInMonth,
+      ordersPerMonthInYear,
+      mostProductiveMonth
     };
   }
+  // === FINE MODIFICA ===
 }
 
 export const storage = new DatabaseStorage();

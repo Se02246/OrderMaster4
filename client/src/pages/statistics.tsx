@@ -1,8 +1,9 @@
+// === INIZIO MODIFICA ===
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ClipboardList, Trophy, CalendarClock, Calendar as CalendarIcon, Zap } from "lucide-react";
+import { ClipboardList, Trophy, CalendarClock, Zap } from "lucide-react";
 import { formatDateForDisplay } from "@/lib/date-utils";
-// === INIZIO MODIFICHE ===
 import {
   LineChart,
   Line,
@@ -11,7 +12,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Label,
 } from "recharts";
 import {
   ChartConfig,
@@ -20,7 +20,18 @@ import {
 } from "@/components/ui/chart";
 import { format, parse } from "date-fns";
 import { it } from "date-fns/locale";
-// === FINE MODIFICHE ===
+// Nuovi import per i selettori
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+// === FINE MODIFICA ===
+
 
 // Definisco i nuovi tipi per i dati
 type TopEmployee = {
@@ -33,8 +44,6 @@ type ProductiveDay = {
   count: number;
 };
 
-// === INIZIO MODIFICHE ===
-// Aggiorniamo la struttura dati
 type OrdersByTime = {
   day?: string; // "YYYY-MM-DD"
   month?: string; // "YYYY-MM"
@@ -92,13 +101,22 @@ const formatMonthYear = (dateStr: string) => {
     return dateStr;
   }
 };
-// === FINE MODIFICHE ===
 
 
 export default function Statistics() {
+  // === INIZIO MODIFICA ===
+  // Stato per i selettori di data
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), "yyyy-MM"));
+
+  // Genera lista di anni per il dropdown (es. 5 anni indietro)
+  const availableYears = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
+
+  // Aggiorna la query per includere gli stati
   const { data: stats, isLoading, isError } = useQuery<StatisticsData>({
-    queryKey: ['/api/statistics'],
+    queryKey: [`/api/statistics?year=${selectedYear}&monthYear=${selectedMonth}`],
   });
+  // === FINE MODIFICA ===
 
   if (isLoading) {
     return (
@@ -119,7 +137,6 @@ export default function Statistics() {
     );
   }
 
-  // === INIZIO MODIFICHE ===
   // Prepara i dati per i grafici
   const dayData = stats.ordersPerDayInMonth.map(d => ({
     day: formatDay(d.day!), // 'day' è sicuramente presente qui
@@ -130,14 +147,12 @@ export default function Statistics() {
     month: formatMonthAbbr(m.month!), // 'month' è sicuramente presente qui
     ordini: m.count,
   }));
-  // === FINE MODIFICHE ===
 
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-semibold text-dark">Statistiche</h2>
 
       {/* Griglia Metriche */}
-      {/* === INIZIO MODIFICA: Aggiornata la griglia a 4 colonne === */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Ordini Totali */}
         <Card>
@@ -151,10 +166,10 @@ export default function Statistics() {
           </CardContent>
         </Card>
         
-        {/* Mese Più Produttivo (NUOVA CARD) */}
+        {/* Mese Più Produttivo (Ora basato sull'anno selezionato) */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Mese Produttivo</CardTitle>
+            <CardTitle className="text-sm font-medium">Mese Produttivo ({selectedYear})</CardTitle>
             <Zap className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -166,12 +181,10 @@ export default function Statistics() {
                 </p>
               </>
             ) : (
-               <p className="text-sm text-muted-foreground">Nessun dato quest'anno.</p>
+               <p className="text-sm text-muted-foreground">Nessun dato per il {selectedYear}.</p>
             )}
           </CardContent>
         </Card>
-        {/* === FINE MODIFICA === */}
-
 
         {/* Top 3 Clienti */}
         <Card>
@@ -222,14 +235,26 @@ export default function Statistics() {
         </Card>
       </div>
 
-      {/* === INIZIO MODIFICA: Aggiunta griglia per i grafici === */}
+      {/* Griglia per i grafici */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* Grafico Ordini per Giorno */}
         <Card>
+          {/* === INIZIO MODIFICA === */}
           <CardHeader>
-            <CardTitle>Ordini per Giorno (Mese Corrente)</CardTitle>
+            <CardTitle>Ordini per Giorno ({formatMonthYear(selectedMonth)})</CardTitle>
+             <div className="w-full max-w-sm pt-2">
+              <Label htmlFor="month-picker" className="text-sm font-medium">Seleziona Mese</Label>
+              <Input
+                id="month-picker"
+                type="month"
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="mt-1"
+              />
+            </div>
           </CardHeader>
+          {/* === FINE MODIFICA === */}
           <CardContent>
             <ChartContainer config={chartConfig} className="h-[250px] w-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -238,7 +263,7 @@ export default function Statistics() {
                   margin={{
                     top: 5,
                     right: 10,
-                    left: -20, // Sposta il grafico a sinistra per far spazio ai numeri
+                    left: -20, 
                     bottom: 5,
                   }}
                 >
@@ -248,10 +273,10 @@ export default function Statistics() {
                     tickLine={false}
                     axisLine={false}
                     tickMargin={8}
-                    padding={{ left: 20, right: 20 }} // Aggiunge padding
+                    padding={{ left: 20, right: 20 }}
                   />
                   <YAxis
-                    domain={[3, 'auto']} // Minimo 3 come richiesto
+                    domain={[3, 'auto']} // Minimo 3
                     allowDecimals={false}
                     tickLine={false}
                     axisLine={false}
@@ -276,9 +301,29 @@ export default function Statistics() {
 
         {/* Grafico Ordini per Mese */}
         <Card>
+          {/* === INIZIO MODIFICA === */}
           <CardHeader>
-            <CardTitle>Ordini per Mese (Anno Corrente)</CardTitle>
+            <CardTitle>Ordini per Mese ({selectedYear})</CardTitle>
+            <div className="w-full max-w-sm pt-2">
+              <Label htmlFor="year-picker" className="text-sm font-medium">Seleziona Anno</Label>
+              <Select
+                value={String(selectedYear)}
+                onValueChange={(value) => setSelectedYear(Number(value))}
+              >
+                <SelectTrigger id="year-picker" className="mt-1">
+                  <SelectValue placeholder="Seleziona un anno" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableYears.map(year => (
+                    <SelectItem key={year} value={String(year)}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </CardHeader>
+          {/* === FINE MODIFICA === */}
           <CardContent>
             <ChartContainer config={chartConfig} className="h-[250px] w-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -300,7 +345,7 @@ export default function Statistics() {
                     padding={{ left: 20, right: 20 }}
                   />
                   <YAxis
-                    domain={[3, 'auto']} // Minimo 3 come richiesto
+                    domain={[3, 'auto']} // Minimo 3
                     allowDecimals={false}
                     tickLine={false}
                     axisLine={false}
@@ -324,7 +369,6 @@ export default function Statistics() {
         </Card>
 
       </div>
-      {/* === FINE MODIFICA === */}
     </div>
   );
 }

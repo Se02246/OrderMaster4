@@ -4,10 +4,8 @@ import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 import { configureVite } from "./vite.js";
-
-// 🚨 CORREZIONE: 
-// Importa l'export nominato 'app' da routes.ts e rinominalo in 'routesApp'
 import { app as routesApp } from "./routes.js";
+import { handle } from 'hono/node-server'; // 🚨 RIGA AGGIUNTA
 
 const app = express();
 const port = process.env.PORT || 10000;
@@ -22,8 +20,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Configurazione API (gestita da Hono)
-// Usa l'app Hono importata (ora chiamata 'routesApp')
-app.use("/api", routesApp);
+// 🚨 CORREZIONE: 
+// Usiamo handle(routesApp) per convertire l'app Hono in un middleware Express
+app.use("/api", handle(routesApp));
 
 // Configurazione Client (Vite o statico)
 if (process.env.NODE_ENV === "production") {

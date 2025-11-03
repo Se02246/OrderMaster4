@@ -83,7 +83,8 @@
     "zod-validation-error": "^3.4.0",
     "hono": "^4.5.3",
     "@hono/clerk-auth": "latest",
-    "@hono/zod-validator": "^0.2.2"
+    "@hono/zod-validator": "^0.2.2",
+    "@hono/node-server": "latest"
   },
   "devDependencies": {
     "@replit/vite-plugin-cartographer": "^0.0.11",

@@ -1,9 +1,13 @@
-// 1. Importa 'useMemo' da react
+// === INIZIO MODIFICA ===
+// 'useMemo' è già importato, ho cambiato PlusCircle con Plus per un look più pulito
 import { useState, useMemo } from "react";
+// === FINE MODIFICA ===
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Search } from "lucide-react"; 
+// === INIZIO MODIFICA ===
+import { Plus, Search } from "lucide-react"; // Cambiato PlusCircle in Plus
+// === FINE MODIFICA ===
 import ApartmentCard from "@/components/ui/data-display/ApartmentCard";
 import { ApartmentModal } from "@/components/ui/modals/ApartmentModal";
 import ConfirmDeleteModal from "@/components/ui/modals/ConfirmDeleteModal";
@@ -15,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 
-// 2. Funzione helper per formattare le date in modo sicuro
+// ... (la funzione safeFormatDate rimane invariata) ...
 const safeFormatDate = (dateString: string | null | undefined) => {
   if (!dateString) return "";
   try {
@@ -42,6 +46,7 @@ export default function Home() {
 
   const [modalState, setModalState] = useState<ModalState>({ type: null, data: null });
 
+  // ... (mutation, handleDelete, confirmDelete, processedAppointments rimangono invariati) ...
   const mutation = useMutation({
     mutationFn: async (apartmentId: number) => {
       await apiRequest("DELETE", `/api/apartments/${apartmentId}`);
@@ -76,7 +81,6 @@ export default function Home() {
     }
   };
 
-  // 3. Logica di ordinamento e filtraggio racchiusa in useMemo
   const processedAppointments = useMemo(() => {
     // Ordina creando una copia
     const sorted = (apartments || [])
@@ -110,8 +114,9 @@ export default function Home() {
         field ? field.toLowerCase().includes(search) : false
       );
     });
-  }, [apartments, searchTerm]); // 4. Dipendenze: ricalcola solo quando i dati o la ricerca cambiano
+  }, [apartments, searchTerm]);
 
+  // ... (isLoading, error rimangono invariati) ...
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -130,61 +135,76 @@ export default function Home() {
     return <div className="text-red-500 text-center">Errore nel caricamento degli appuntamenti: {error.message}</div>;
   }
 
+
+  // === INIZIO MODIFICA ===
+  // Ho aggiunto un React.Fragment (<>) per wrappare
+  // sia il contenuto principale che il nuovo bottone fluttuante.
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        
-        <div className="relative w-full sm:max-w-xs">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Cerca ordini..."
-            className="w-full rounded-lg bg-background pl-8"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+    <>
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          
+          <div className="relative w-full sm:max-w-xs">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Cerca ordini..."
+              className="w-full rounded-lg bg-background pl-8"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          {/* IL VECCHIO BOTTONE "Aggiungi Appuntamento" È STATO RIMOSSO DA QUI */}
         </div>
 
-        <Button onClick={() => setModalState({ type: "add", data: null })}>
-          <PlusCircle className="mr-2 h-4 w-4" /> Aggiungi Appuntamento
-        </Button>
+        {/* Il resto del contenuto della pagina */}
+        {processedAppointments && processedAppointments.length > 0 ? (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {processedAppointments.map((apartment) => (
+              <ApartmentCard
+                key={apartment.id}
+                apartment={apartment}
+                onEdit={() => setModalState({ type: "edit", data: apartment })}
+                onDelete={() => handleDelete(apartment)}
+                onStatusChange={() => queryClient.invalidateQueries({ queryKey: ["/api/apartments"] })}
+                onPaymentChange={() => queryClient.invalidateQueries({ queryKey: ["/api/apartments"] })}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center text-gray-500 py-10">
+            {searchTerm
+              ? "Nessun ordine trovato per questa ricerca."
+              : "Non ci sono ordini da mostrare."}
+          </div>
+        )}
+
+        {/* Modali (invariati) */}
+        <ApartmentModal
+          isOpen={modalState.type === "add" || modalState.type === "edit"}
+          onClose={() => setModalState({ type: null, data: null })}
+          apartment={modalState.data}
+        />
+        <ConfirmDeleteModal
+          isOpen={modalState.type === "delete"}
+          onClose={() => setModalState({ type: null, data: null })}
+          onConfirm={confirmDelete}
+          isLoading={mutation.isPending}
+          itemName={modalState.data?.name || "questo appuntamento"}
+        />
       </div>
 
-      {/* 5. Mappa i processedAppointments (calcolati con useMemo) */}
-      {processedAppointments && processedAppointments.length > 0 ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {processedAppointments.map((apartment) => (
-            <ApartmentCard
-              key={apartment.id}
-              apartment={apartment}
-              onEdit={() => setModalState({ type: "edit", data: apartment })}
-              onDelete={() => handleDelete(apartment)}
-              onStatusChange={() => queryClient.invalidateQueries({ queryKey: ["/api/apartments"] })}
-              onPaymentChange={() => queryClient.invalidateQueries({ queryKey: ["/api/apartments"] })}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="text-center text-gray-500 py-10">
-          {searchTerm
-            ? "Nessun ordine trovato per questa ricerca."
-            : "Non ci sono ordini da mostrare."}
-        </div>
-      )}
-
-      {/* Modali (invariati) */}
-      <ApartmentModal
-        isOpen={modalState.type === "add" || modalState.type === "edit"}
-        onClose={() => setModalState({ type: null, data: null })}
-        apartment={modalState.data}
-      />
-      <ConfirmDeleteModal
-        isOpen={modalState.type === "delete"}
-        onClose={() => setModalState({ type: null, data: null })}
-        onConfirm={confirmDelete}
-        isLoading={mutation.isPending}
-        itemName={modalState.data?.name || "questo appuntamento"}
-      />
-    </div>
+      {/* NUOVO BOTTONE FLUTTUANTE */}
+      <Button
+        onClick={() => setModalState({ type: "add", data: null })}
+        className="fixed z-40 right-6 bottom-6 h-14 w-14 rounded-full shadow-lg"
+        size="icon"
+        aria-label="Aggiungi Appuntamento"
+      >
+        <Plus className="h-6 w-6" />
+      </Button>
+    </>
   );
+  // === FINE MODIFICA ===
 }

@@ -84,7 +84,7 @@
     "hono": "^4.5.3",
     "@hono/clerk-auth": "latest",
     "@hono/zod-validator": "^0.2.2",
-    "@hono/node-server": "latest"
+    "@hono/node-server": "^1.19.5"
   },
   "devDependencies": {
     "@replit/vite-plugin-cartographer": "^0.0.11",

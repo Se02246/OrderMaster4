@@ -25,7 +25,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Trova la cartella di build del client (dist/client)
-const clientDistPath = path.resolve(__dirname, '..', 'dist', 'client');
+// CORREZIONE CHIAVE: In ambiente di produzione (dopo esbuild), __dirname è 'dist'.
+// Usare path.join(__dirname, 'client') risolve correttamente in 'dist/client'.
+const clientDistPath = path.join(__dirname, 'client');
 
 // 1. Serve tutti i file statici dalla cartella di base di Vite (dist/client).
 // Gestisce /assets/index-....css e altri asset.
@@ -33,8 +35,7 @@ app.use(express.static(clientDistPath));
 
 // 2. Gestione delle SPA: invia 'index.html' per tutte le altre richieste.
 app.get('*', (req, res) => {
-  // ⬇️ CORREZIONE DEFINITIVA DEL PATH:
-  // Cerca index.html direttamente nella cartella di distribuzione, non nella sottocartella 'client'.
+  // Ora path.join risolve in modo pulito a: /opt/render/project/src/dist/client/index.html
   res.sendFile(path.join(clientDistPath, 'index.html'));
 });
 

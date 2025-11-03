@@ -5,7 +5,8 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { configureVite } from "./vite.js";
 import { app as routesApp } from "./routes.js";
-import { handle } from 'hono/node-server'; // 🚨 RIGA AGGIUNTA
+// 🚨 CORREZIONE: Import cambiato da 'hono/node-server' a 'hono/express'
+import { handle } from 'hono/express'; 
 
 const app = express();
 const port = process.env.PORT || 10000;
@@ -20,7 +21,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Configurazione API (gestita da Hono)
-// 🚨 CORREZIONE: 
 // Usiamo handle(routesApp) per convertire l'app Hono in un middleware Express
 app.use("/api", handle(routesApp));
 

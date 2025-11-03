@@ -10,6 +10,9 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { EmployeeWithAssignedApartments } from "@shared/schema";
 import { EmployeeFormData } from "@/components/ui/modals/types";
+// === INIZIO MODIFICHE ===
+import { UserPlus } from "lucide-react"; // Importo l'icona richiesta
+// === FINE MODIFICHE ===
 
 export default function Employees() {
   const { toast } = useToast();
@@ -19,7 +22,7 @@ export default function Employees() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [employeeToDelete, setEmployeeToDelete] = useState<{ id: number, name: string } | null>(null);
 
-  // Fetch employees
+  // ... (useQuery e mutations rimangono invariati) ...
   const { data: employees = [], isLoading } = useQuery<EmployeeWithAssignedApartments[]>({
     queryKey: [`/api/employees${searchQuery ? `?search=${searchQuery}` : ''}`],
   });
@@ -66,7 +69,7 @@ export default function Employees() {
     }
   });
 
-  // Event handlers
+  // ... (Event handlers rimangono invariati) ...
   const handleOpenEmployeeModal = () => {
     setIsEmployeeModalOpen(true);
   };
@@ -90,6 +93,7 @@ export default function Employees() {
     }
   };
 
+
   const isPending = createEmployeeMutation.isPending || deleteEmployeeMutation.isPending;
 
   return (
@@ -107,16 +111,11 @@ export default function Employees() {
             />
             <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
           </div>
-          <Button 
-            onClick={handleOpenEmployeeModal}
-            disabled={isPending}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium px-4 py-2 rounded-lg transition-colors flex items-center whitespace-nowrap"
-          >
-            <i className="fas fa-plus mr-2"></i> AGGIUNGI
-          </Button>
+          {/* === VECCHIO BOTTONE "AGGIUNGI" RIMOSSO DA QUI === */}
         </div>
       </div>
 
+      {/* ... (isLoading, griglia, stato vuoto rimangono invariati) ... */}
       {isLoading ? (
         <div className="text-center py-8">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -151,7 +150,7 @@ export default function Employees() {
         </div>
       )}
 
-      {/* Modals */}
+      {/* Modals (invariati) */}
       <EmployeeModal
         isOpen={isEmployeeModalOpen}
         onClose={() => setIsEmployeeModalOpen(false)}
@@ -164,6 +163,19 @@ export default function Employees() {
         onConfirm={handleDeleteConfirm}
         message={`Sei sicuro di voler eliminare il cliente "${employeeToDelete?.name}"?`}
       />
+
+      {/* === INIZIO MODIFICHE === */}
+      {/* NUOVO BOTTONE FLUTTUANTE PER AGGIUNGI CLIENTE */}
+      <Button
+        onClick={handleOpenEmployeeModal}
+        disabled={isPending}
+        className="fixed z-40 right-6 bottom-6 h-14 w-14 rounded-full shadow-lg"
+        size="icon"
+        aria-label="Aggiungi Cliente"
+      >
+        <UserPlus className="h-6 w-6" />
+      </Button>
+      {/* === FINE MODIFICHE === */}
     </>
   );
 }

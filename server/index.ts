@@ -7,7 +7,7 @@ import { configureVite } from "./vite.js";
 import { app as routesApp } from "./routes.js";
 // 🚨 CORREZIONE: 
 // Importa 'handle' dal sottomodulo '/express'
-import { handle } from '@hono/node-server/express';
+import { hono } from 'hono/express';
 
 const app = express();
 const port = process.env.PORT || 10000;
@@ -24,8 +24,7 @@ app.use(express.urlencoded({ extended: true }));
 // Configurazione API (gestita da Hono)
 // 🚨 CORREZIONE: 
 // Configurazione API (gestita da Hono)
-// Usa 'handle'
-app.use("/api", handle(routesApp));
+app.use("/api", hono(routesApp));
 
 // Configurazione Client (Vite o statico)
 if (process.env.NODE_ENV === "production") {

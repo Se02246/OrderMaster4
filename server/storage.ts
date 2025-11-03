@@ -322,7 +322,6 @@ export class DatabaseStorage implements IStorage {
       .where(eq(assignments.apartment_id, apartmentId));
   }
   
-  // === INIZIO MODIFICA ===
   async getStatistics(userId: number): Promise<StatisticsData> {
     // 1. Ordini totali (Invariato)
     const [totalOrdersResult] = await db.select({
@@ -378,9 +377,12 @@ export class DatabaseStorage implements IStorage {
     const yearStart = `${currentYear}-01-01`;
     const yearEnd = `${currentYear}-12-31`;
     
+    // === INIZIO MODIFICA ===
+    const monthSqlExpression = sql<string>`TO_CHAR(TO_DATE(${apartments.cleaning_date}, 'YYYY-MM-DD'), 'YYYY-MM')`;
+
     const monthQuery = await db
       .select({
-        month_key: sql<string>`TO_CHAR(TO_DATE(${apartments.cleaning_date}, 'YYYY-MM-DD'), 'YYYY-MM')`,
+        month_key: monthSqlExpression, // Usiamo l'espressione qui
         count: count()
       })
       .from(apartments)
@@ -389,7 +391,8 @@ export class DatabaseStorage implements IStorage {
         sql`${apartments.cleaning_date} >= ${yearStart}`,
         sql`${apartments.cleaning_date} <= ${yearEnd}`
       ))
-      .groupBy(sql`month_key`);
+      .groupBy(monthSqlExpression); // E la ripetiamo qui
+    // === FINE MODIFICA ===
 
     // Crea un template per tutti i mesi dell'anno
     const monthsInYear = Array.from({ length: 12 }, (_, i) => 
@@ -448,7 +451,6 @@ export class DatabaseStorage implements IStorage {
       mostProductiveMonth
     };
   }
-  // === FINE MODIFICA ===
 }
 
 export const storage = new DatabaseStorage();

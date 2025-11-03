@@ -6,7 +6,7 @@ import { fileURLToPath } from "url";
 import { configureVite } from "./vite.js";
 import { app as routesApp } from "./routes.js";
 // 🚨 CORREZIONE: Import cambiato da 'hono/node-server' a 'hono/express'
-import { handle } from 'hono/express'; 
+import { handle } from '@hono/node-server';
 
 const app = express();
 const port = process.env.PORT || 10000;

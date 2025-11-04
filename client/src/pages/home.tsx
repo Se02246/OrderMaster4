@@ -185,6 +185,9 @@ export default function Home() {
           isOpen={modalState.type === "add" || modalState.type === "edit"}
           onClose={() => setModalState({ type: null, data: null })}
           apartment={modalState.data}
+          // === CORREZIONE BUG MODALE (IDENTICA A CALENDAR.TSX) ===
+          mode={modalState.type}
+          // === FINE CORREZIONE ===
         />
         <ConfirmDeleteModal
           isOpen={modalState.type === "delete"}

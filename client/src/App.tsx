@@ -84,6 +84,7 @@ function AppRouter() {
             <Route path="/" component={Home} />
             <Route path="/calendar" component={Calendar} />
             {/* === CORREZIONE ROUTING 404 === */}
+            {/* La rotta deve corrispondere a quella usata in calendar-day.tsx */}
             <Route path="/calendar/:date" component={CalendarDay} />
             {/* === FINE CORREZIONE === */}
             <Route path="/employees" component={Employees} />

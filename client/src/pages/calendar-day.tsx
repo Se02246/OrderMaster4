@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useParams, useNavigate } from "react-router-dom";
+// === INIZIO CORREZIONE ROUTING ===
+import { useLocation, useRoute } from "wouter";
+// === FINE CORREZIONE ROUTING ===
 import { format, parse, isValid } from "date-fns";
 import { it } from "date-fns/locale";
 import { ArrowLeft, Plus } from "lucide-react";
@@ -16,8 +18,15 @@ import { ModalState } from "@/components/ui/modals/types";
 import { useToast } from "@/hooks/use-toast";
 
 export default function CalendarDay() {
-  const { date: dateParam } = useParams();
-  const navigate = useNavigate();
+  // === INIZIO CORREZIONE ROUTING ===
+  // Sostituisco useParams con useRoute
+  const [match, params] = useRoute("/calendar/:date");
+  const dateParam = params ? params.date : null;
+  
+  // Sostituisco useNavigate con useLocation
+  const [location, navigate] = useLocation();
+  // === FINE CORREZIONE ROUTING ===
+  
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -29,6 +38,7 @@ export default function CalendarDay() {
   });
 
   // Reindirizza se la data non è valida o non è nel formato corretto
+  // (La logica di navigazione è compatibile con wouter)
   if (!dateParam || !isValid(currentDate) || dateParam !== format(currentDate, "yyyy-MM-dd")) {
     navigate(`/calendar/${format(currentDate || new Date(), "yyyy-MM-dd")}`, { replace: true });
   }
@@ -133,6 +143,7 @@ export default function CalendarDay() {
              <Button
               variant="outline"
               size="icon"
+              // L'hook navigate di wouter funziona correttamente qui
               onClick={() => navigate("/calendar")}
               aria-label="Torna al calendario"
             >
@@ -174,7 +185,7 @@ export default function CalendarDay() {
           isOpen={modalState.type === "add" || modalState.type === "edit"}
           onClose={() => setModalState({ type: null, data: null })}
           apartment={modalState.data}
-          // === CORREZIONE BUG MODALE ===
+          // === CORREZIONE BUG MODALE (Già applicata in precedenza) ===
           mode={modalState.type}
           // === FINE CORREZIONE ===
         />

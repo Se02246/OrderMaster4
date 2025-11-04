@@ -1,452 +1,394 @@
-import express from "express";
+import express, { type Express, Request, Response, NextFunction } from "express";
+import { createServer, type Server } from "http";
+import { storage } from "./storage";
+import { z } from "zod";
+import { 
+  insertApartmentSchema, 
+  insertEmployeeSchema, 
+  apartmentWithEmployeesSchema,
+  insertUserSchema,
+  SafeUser,
+  users,
+} from "@shared/schema";
+import { fromZodError } from "zod-validation-error";
+import { isAuthenticated } from "./middleware"; // Import corretto
 import passport from "passport";
 import bcrypt from "bcryptjs";
 import { db } from "./db";
-import { users, apartments, employees, apartmentsToEmployees } from "../shared/schema";
-import { z } from "zod";
-import { fromZodError } from "zod-validation-error";
-// === INIZIO CORREZIONE ===
-import { eq, desc } from "drizzle-orm"; // Aggiunto 'eq'
-// === FINE CORREZIONE ===
-import { apartmentWithEmployeesSchema, employeeSchema } from "../shared/schema";
-import { isAuthenticated, formatZodError } from "./middleware";
+import { eq } from "drizzle-orm";
+// === INIZIO MODIFICA ===
+// Import necessario per i valori di default e per il parsing della data
+import { format, parse } from "date-fns"; 
+// === FINE MODIFICA ===
 
-export const routes = express.Router();
 
-// --- Auth Routes ---
+// Helper per ottenere l'ID utente in modo sicuro
+function getUserId(req: Request): number {
+  const user = req.user as SafeUser;
+  if (!user || !user.id) {
+    throw new Error("Autenticazione richiesta");
+  }
+  return user.id;
+}
 
-routes.post("/login", passport.authenticate("local"), (req, res) => {
-  res.json({ message: "Login successful", user: req.user });
-});
+export async function registerRoutes(app: Express): Promise<Server> { // Struttura corretta
+  const router = express.Router();
+  const authRouter = express.Router();
 
-routes.post("/logout", (req, res, next) => {
-  req.logout((err) => {
-    if (err) {
-      return next(err);
-    }
-    req.session.destroy((err) => {
-      if (err) {
-        return res.status(500).json({ message: "Failed to destroy session" });
+  // === Route di Autenticazione (Pubbliche) ===
+  // ... (Tutto il codice di authRouter rimane invariato)
+  authRouter.post("/register", async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { email, password } = req.body;
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email e password sono obbligatori." });
       }
-      res.clearCookie("connect.sid");
-      res.json({ message: "Logout successful" });
+
+      const [existingUser] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+      if (existingUser) {
+        return res.status(400).json({ message: "Email già registrata." });
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const validationResult = insertUserSchema.safeParse({
+        email,
+        hashed_password: hashedPassword,
+      });
+
+      if (!validationResult.success) {
+        const errorMessage = fromZodError(validationResult.error).message;
+        return res.status(400).json({ message: errorMessage });
+      }
+
+      const [newUser] = await db.insert(users).values(validationResult.data).returning();
+      const { hashed_password, ...safeUser } = newUser;
+      
+      req.login(safeUser, (err) => {
+        if (err) return next(err);
+        res.status(201).json(safeUser);
+      });
+
+    } catch (error) {
+      console.error("Error registering user:", error);
+      res.status(500).json({ message: "Error registering user" });
+    }
+  });
+
+  authRouter.post("/login", passport.authenticate("local"), (req: Request, res: Response) => {
+    res.json(req.user);
+  });
+
+  authRouter.post("/logout", (req: Request, res: Response, next: NextFunction) => {
+    req.logout((err) => {
+      if (err) return next(err);
+      req.session.destroy(() => {
+        res.clearCookie("connect.sid");
+        res.status(200).json({ message: "Logout effettuato con successo." });
+      });
     });
   });
-});
 
-routes.get("/me", (req, res) => {
-  if (req.user) {
-    res.json(req.user);
-  } else {
-    res.status(401).json({ message: "Not authenticated" });
-  }
-});
-
-// --- Apartments (Ordini) ---
-
-// GET tutti gli ordini
-routes.get("/apartments", isAuthenticated, async (req, res) => {
-  try {
-    const apartmentsData = await db.query.apartments.findMany({
-      with: {
-        employees: {
-          with: {
-            employee: true,
-          },
-        },
-      },
-      orderBy: (apartments, { asc }) => [asc(apartments.cleaning_date)],
-    });
-
-    // Trasforma i dati per nidificare i dipendenti
-    const transformedApartments = apartmentsData.map((apt) => ({
-      ...apt,
-      employees: apt.employees.map((ae) => ae.employee),
-    }));
-
-    res.json(transformedApartments);
-  } catch (error) {
-    console.error("Errore nel recuperare gli ordini:", error);
-    res.status(500).json({ message: "Errore interno del server" });
-  }
-});
-
-// === INIZIO CORREZIONE: ROTTA MANCANTE ===
-// GET ordini per data specifica (per la pagina calendar-day)
-routes.get("/apartments/date/:date", isAuthenticated, async (req, res) => {
-  const { date } = req.params;
-
-  if (!date) {
-    return res.status(400).json({ message: "Data non fornita" });
-  }
-
-  try {
-    const apartmentsData = await db.query.apartments.findMany({
-      // Filtra per data di pulizia
-      where: eq(apartments.cleaning_date, date),
-      with: {
-        employees: {
-          with: {
-            employee: true,
-          },
-        },
-      },
-      orderBy: (apartments, { asc }) => [asc(apartments.start_time)], // Ordina per ora
-    });
-
-    // Stessa trasformazione dati delle altre routes
-    const transformedApartments = apartmentsData.map((apt) => ({
-      ...apt,
-      employees: apt.employees.map((ae) => ae.employee),
-    }));
-
-    res.json(transformedApartments);
-  } catch (error) {
-    console.error("Errore nel recuperare gli ordini per data:", error);
-    res.status(500).json({ message: "Errore interno del server" });
-  }
-});
-// === FINE CORREZIONE ===
-
-// GET ordine singolo
-routes.get("/apartments/:id", isAuthenticated, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const apartmentData = await db.query.apartments.findFirst({
-      where: eq(apartments.id, Number(id)),
-      with: {
-        employees: {
-          with: {
-            employee: true,
-          },
-        },
-      },
-    });
-
-    if (!apartmentData) {
-      return res.status(404).json({ message: "Ordine non trovato" });
+  authRouter.get("/me", (req: Request, res: Response) => {
+    if (req.isAuthenticated()) {
+      res.json(req.user);
+    } else {
+      res.status(401).json({ message: "Non autenticato" });
     }
+  });
 
-    // Trasforma i dati
-    const transformedApartment = {
-      ...apartmentData,
-      employees: apartmentData.employees.map((ae) => ae.employee),
-    };
+  app.use("/api/auth", authRouter);
 
-    res.json(transformedApartment);
-  } catch (error) {
-    console.error("Errore nel recuperare l'ordine:", error);
-    res.status(500).json({ message: "Errore interno del server" });
-  }
-});
-
-// POST (Crea) nuovo ordine
-routes.post("/apartments", isAuthenticated, async (req, res) => {
-  try {
-    const validation = apartmentWithEmployeesSchema.safeParse(req.body);
-    if (!validation.success) {
-      return res.status(400).json(formatZodError(validation.error));
-    }
-
-    const { employee_ids, ...apartmentData } = validation.data;
-
-    // 1. Crea l'appartamento
-    const [newApartment] = await db
-      .insert(apartments)
-      .values(apartmentData)
-      .returning();
-
-    // 2. Associa i dipendenti
-    if (employee_ids && employee_ids.length > 0) {
-      const links = employee_ids.map((empId) => ({
-        apartmentId: newApartment.id,
-        employeeId: empId,
-      }));
-      await db.insert(apartmentsToEmployees).values(links);
-    }
-
-    res.status(201).json(newApartment);
-  } catch (error) {
-    console.error("Errore nella creazione dell'ordine:", error);
-    res.status(500).json({ message: "Errore interno del server" });
-  }
-});
-
-// PUT (Aggiorna) ordine
-routes.put("/apartments/:id", isAuthenticated, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const validation = apartmentWithEmployeesSchema.safeParse(req.body);
-    if (!validation.success) {
-      return res.status(400).json(formatZodError(validation.error));
-    }
-
-    const { employee_ids, ...apartmentData } = validation.data;
-
-    // 1. Aggiorna l'appartamento
-    const [updatedApartment] = await db
-      .update(apartments)
-      .set(apartmentData)
-      .where(eq(apartments.id, Number(id)))
-      .returning();
-
-    if (!updatedApartment) {
-      return res.status(404).json({ message: "Ordine non trovato" });
-    }
-
-    // 2. Aggiorna le associazioni dei dipendenti (rimuovi vecchie, aggiungi nuove)
-    await db
-      .delete(apartmentsToEmployees)
-      .where(eq(apartmentsToEmployees.apartmentId, Number(id)));
-
-    if (employee_ids && employee_ids.length > 0) {
-      const links = employee_ids.map((empId) => ({
-        apartmentId: updatedApartment.id,
-        employeeId: empId,
-      }));
-      await db.insert(apartmentsToEmployees).values(links);
-    }
-
-    res.json(updatedApartment);
-  } catch (error) {
-    console.error("Errore nell'aggiornamento dell'ordine:", error);
-    res.status(500).json({ message: "Errore interno del server" });
-  }
-});
-
-// DELETE ordine
-routes.delete("/apartments/:id", isAuthenticated, async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    // 1. Rimuovi associazioni
-    await db
-      .delete(apartmentsToEmployees)
-      .where(eq(apartmentsToEmployees.apartmentId, Number(id)));
-
-    // 2. Rimuovi appartamento
-    const [deletedApartment] = await db
-      .delete(apartments)
-      .where(eq(apartments.id, Number(id)))
-      .returning();
-
-    if (!deletedApartment) {
-      return res.status(404).json({ message: "Ordine non trovato" });
-    }
-
-    res.status(204).send(); // Successo, nessuna risposta
-  } catch (error) {
-    console.error("Errore nell'eliminazione dell'ordine:", error);
-    res.status(500).json({ message: "Errore interno del server" });
-  }
-});
-
-// --- Employees (Clienti) ---
-
-// GET tutti i dipendenti
-routes.get("/employees", isAuthenticated, async (req, res) => {
-  try {
-    const allEmployees = await db.query.employees.findMany({
-       orderBy: (employees, { asc }) => [asc(employees.first_name)],
-    });
-    res.json(allEmployees);
-  } catch (error) {
-    console.error("Errore nel recuperare i dipendenti:", error);
-    res.status(500).json({ message: "Errore interno del server" });
-  }
-});
-
-// GET dipendente singolo (con i suoi ordini)
-routes.get("/employees/:id", isAuthenticated, async (req, res) => {
-   try {
-    const { id } = req.params;
-    const employeeData = await db.query.employees.findFirst({
-      where: eq(employees.id, Number(id)),
-      with: {
-        apartments: {
-          with: {
-            apartment: true,
-          },
-        },
-      },
-    });
-
-    if (!employeeData) {
-      return res.status(404).json({ message: "Dipendente non trovato" });
-    }
-
-    // Trasforma i dati per includere solo gli appartamenti
-    const transformedData = {
-      ...employeeData,
-      apartments: employeeData.apartments.map(a => a.apartment)
-    };
-    
-    res.json(transformedData);
-  } catch (error) {
-    console.error("Errore nel recuperare il dipendente:", error);
-    res.status(500).json({ message: "Errore interno del server" });
-  }
-});
-
-
-// POST (Crea) nuovo dipendente
-routes.post("/employees", isAuthenticated, async (req, res) => {
-  try {
-    const validation = employeeSchema.safeParse(req.body);
-    if (!validation.success) {
-      return res.status(400).json(formatZodError(validation.error));
-    }
-
-    const [newEmployee] = await db
-      .insert(employees)
-      .values(validation.data)
-      .returning();
-      
-    res.status(201).json(newEmployee);
-  } catch (error) {
-     console.error("Errore nella creazione del dipendente:", error);
-    res.status(500).json({ message: "Errore interno del server" });
-  }
-});
-
-// PUT (Aggiorna) dipendente
-routes.put("/employees/:id", isAuthenticated, async (req, res) => {
-   try {
-    const { id } = req.params;
-    const validation = employeeSchema.safeParse(req.body);
-    if (!validation.success) {
-      return res.status(400).json(formatZodError(validation.error));
-    }
-
-    const [updatedEmployee] = await db
-      .update(employees)
-      .set(validation.data)
-      .where(eq(employees.id, Number(id)))
-      .returning();
-
-    if (!updatedEmployee) {
-      return res.status(404).json({ message: "Dipendente non trovato" });
-    }
-    
-    res.json(updatedEmployee);
-  } catch (error) {
-     console.error("Errore nell'aggiornamento del dipendente:", error);
-    res.status(500).json({ message: "Errore interno del server" });
-  }
-});
-
-// DELETE dipendente
-routes.delete("/employees/:id", isAuthenticated, async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    // 1. Rimuovi associazioni
-    await db
-      .delete(apartmentsToEmployees)
-      .where(eq(apartmentsToEmployees.employeeId, Number(id)));
-
-    // 2. Rimuovi dipendente
-    const [deletedEmployee] = await db
-      .delete(employees)
-      .where(eq(employees.id, Number(id)))
-      .returning();
-
-    if (!deletedEmployee) {
-      return res.status(404).json({ message: "Dipendente non trovato" });
-    }
-
-    res.status(204).send(); // Successo
-  } catch (error) {
-    console.error("Errore nell'eliminazione del dipendente:", error);
-    res.status(500).json({ message: "Errore interno del server" });
-  }
-});
-
-
-// --- Calendar ---
-
-// GET dati calendario per mese/anno
-routes.get("/calendar/:year/:month", isAuthenticated, async (req, res) => {
-  const { year, month } = req.params;
+  // === Route API Protette ===
   
-  // Costruisci le date di inizio e fine mese
-  const startDate = new Date(Number(year), Number(month) - 1, 1);
-  const endDate = new Date(Number(year), Number(month), 0); // L'ultimo giorno del mese
+  router.use(isAuthenticated); // Uso corretto del middleware
 
-  try {
-     const apartmentsData = await db.query.apartments.findMany({
-      where: (apartments, { gte, lte }) => [
-        gte(apartments.cleaning_date, startDate.toISOString().split('T')[0]),
-        lte(apartments.cleaning_date, endDate.toISOString().split('T')[0]),
-      ],
-      with: {
-        employees: {
-          with: {
-            employee: true,
-          },
-        },
-      },
-    });
-    
-    // Trasforma i dati
-    const transformedApartments = apartmentsData.map((apt) => ({
-      ...apt,
-      employees: apt.employees.map((ae) => ae.employee),
-    }));
+  // Apartments endpoints
+  // ... (Tutte le rotte /apartments rimangono invariate)
+  router.get("/apartments", async (req: Request, res: Response) => {
+    try {
+      const userId = getUserId(req);
+      const sortBy = req.query.sortBy as string | undefined;
+      const search = req.query.search as string | undefined;
+      
+      const apartments = await storage.getApartments(userId, { sortBy, search });
+      res.json(apartments);
+    } catch (error) {
+      console.error("Error fetching apartments:", error);
+      res.status(500).json({ message: "Error fetching apartments" });
+    }
+  });
 
-    res.json(transformedApartments);
-  } catch (error) {
-     console.error("Errore nel recuperare i dati del calendario:", error);
-    res.status(500).json({ message: "Errore interno del server" });
-  }
-});
+  // === INIZIO CORREZIONE: ROTTA MANCANTE PER ERRORE JSON ===
+  // Aggiungiamo la rotta /api/apartments/date/:date
+  router.get("/apartments/date/:date", async (req: Request, res: Response) => {
+    try {
+      const userId = getUserId(req);
+      const dateString = req.params.date; // es: "2025-11-04"
+      
+      // Usiamo 'parse' per convertire la stringa in un oggetto Date
+      const parsedDate = parse(dateString, "yyyy-MM-dd", new Date());
+
+      if (isNaN(parsedDate.getTime())) {
+         return res.status(400).json({ message: "Data non valida" });
+      }
+
+      const year = parsedDate.getFullYear();
+      const month = parsedDate.getMonth() + 1; // getMonth() è 0-indexed
+      const day = parsedDate.getDate();
+
+      // Chiamiamo la funzione storage esistente con i parametri corretti
+      const apartments = await storage.getApartmentsByDate(userId, year, month, day);
+      res.json(apartments);
+      
+    } catch (error) {
+      console.error("Error fetching calendar day data by date:", error);
+      res.status(500).json({ message: "Error fetching calendar day data" });
+    }
+  });
+  // === FINE CORREZIONE ===
 
 
-// --- Statistics ---
+  router.get("/apartments/:id", async (req: Request, res: Response) => {
+    try {
+      const userId = getUserId(req);
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid apartment ID" });
+      }
+      
+      const apartment = await storage.getApartment(userId, id);
+      if (!apartment) {
+        return res.status(404).json({ message: "Apartment not found" });
+      }
+      
+      res.json(apartment);
+    } catch (error) {
+      console.error("Error fetching apartment:", error);
+      res.status(500).json({ message: "Error fetching apartment" });
+    }
+  });
 
-routes.get("/statistics/summary", isAuthenticated, async (req, res) => {
-  try {
-    // 1. Totale ordini
-    const totalOrders = await db.select({ count: (c) => c.count() }).from(apartments);
-    
-    // 2. Totale dipendenti
-    const totalEmployees = await db.select({ count: (c) => c.count() }).from(employees);
-    
-    // 3. Ordini recenti (ultimi 5)
-    const recentOrdersData = await db.query.apartments.findMany({
-      limit: 5,
-      orderBy: (apartments, { desc }) => [desc(apartments.cleaning_date), desc(apartments.id)],
-      with: {
-        employees: {
-          with: {
-            employee: true,
-          },
-        },
-      },
-    });
-    
-     const recentOrders = recentOrdersData.map((apt) => ({
-      ...apt,
-      employees: apt.employees.map((ae) => ae.employee),
-    }));
+  router.post("/apartments", async (req: Request, res: Response) => {
+    try {
+      const userId = getUserId(req);
+      const validationResult = apartmentWithEmployeesSchema.safeParse(req.body);
+      
+      if (!validationResult.success) {
+        const errorMessage = fromZodError(validationResult.error).message;
+        return res.status(400).json({ message: errorMessage || "Dati non validi." });
+      }
+      
+      const { employee_ids, ...apartmentData } = validationResult.data;
+      
+      const apartment = await storage.createApartment(
+        userId,
+        { ...apartmentData, user_id: userId }, 
+        employee_ids || []
+      );
+      
+      res.status(201).json(apartment);
+    } catch (error) {
+      console.error("Error creating apartment:", error);
+      res.status(500).json({ message: "Error creating apartment" });
+    }
+  });
 
-    // 4. Calcolo entrate (potrebbe richiedere logica più complessa)
-    // Semplice somma di tutti i prezzi
-    const revenueResult = await db.select({ 
-      total: (c) => c.sum(apartments.price) 
-    }).from(apartments);
-    
-    const totalRevenue = revenueResult[0]?.total || 0;
+  router.put("/apartments/:id", async (req: Request, res: Response) => {
+    try {
+      const userId = getUserId(req);
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid apartment ID" });
+      }
+      
+      const validationResult = apartmentWithEmployeesSchema.safeParse(req.body);
+      
+      if (!validationResult.success) {
+        const errorMessage = fromZodError(validationResult.error).message;
+        return res.status(400).json({ message: errorMessage || "Dati non validi." });
+      }
+      
+      const { employee_ids, ...apartmentData } = validationResult.data;
+      
+      const apartment = await storage.updateApartment(
+        userId,
+        id,
+        { ...apartmentData, user_id: userId }, 
+        employee_ids || []
+      );
+      
+      res.json(apartment);
+    } catch (error) {
+      console.error("Error updating apartment:", error);
+      res.status(500).json({ message: "Error updating apartment" });
+    }
+  });
 
-    res.json({
-      totalOrders: totalOrders[0]?.count || 0,
-      totalEmployees: totalEmployees[0]?.count || 0,
-      totalRevenue: parseFloat(totalRevenue),
-      recentOrders: recentOrders,
-    });
-    
-  } catch (error) {
-    console.error("Errore nel recuperare le statistiche:", error);
-    res.status(500).json({ message: "Errore interno del server" });
-  }
-});
+  router.delete("/apartments/:id", async (req: Request, res: Response) => {
+    try {
+      const userId = getUserId(req);
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid apartment ID" });
+      }
+      
+      await storage.deleteApartment(userId, id);
+      res.status(204).end();
+    } catch (error) {
+      console.error("Error deleting apartment:", error);
+      res.status(500).json({ message: "Error deleting apartment" });
+    }
+  });
+
+
+  // Employees endpoints
+  // ... (Tutte le rotte /employees rimangono invariate)
+  router.get("/employees", async (req: Request, res: Response) => {
+    try {
+      const userId = getUserId(req);
+      const search = req.query.search as string | undefined;
+      
+      const employees = await storage.getEmployees(userId, { search });
+      res.json(employees);
+    } catch (error) {
+      console.error("Error fetching employees:", error);
+      res.status(500).json({ message: "Error fetching employees" });
+    }
+  });
+
+  router.get("/employees/:id", async (req: Request, res: Response) => {
+    try {
+      const userId = getUserId(req);
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid employee ID" });
+      }
+      
+      const employee = await storage.getEmployee(userId, id);
+      if (!employee) {
+        return res.status(404).json({ message: "Employee not found" });
+      }
+      
+      res.json(employee);
+    } catch (error) {
+      console.error("Error fetching employee:", error);
+      res.status(500).json({ message: "Error fetching employee" });
+    }
+  });
+
+  router.post("/employees", async (req: Request, res: Response) => {
+    try {
+      const userId = getUserId(req);
+      const validationResult = insertEmployeeSchema.safeParse(req.body);
+      
+      if (!validationResult.success) {
+        const errorMessage = fromZodError(validationResult.error).message;
+        return res.status(400).json({ message: errorMessage || "Dati non validi." });
+      }
+      
+      const employee = await storage.createEmployee(
+        userId,
+        { ...validationResult.data, user_id: userId } 
+      );
+      
+      res.status(201).json(employee);
+    } catch (error) {
+      console.error("Error creating employee:", error);
+      res.status(500).json({ message: "Error creating employee" });
+    }
+  });
+
+  router.delete("/employees/:id", async (req: Request, res: Response) => {
+    try {
+      const userId = getUserId(req);
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid employee ID" });
+      }
+      
+      await storage.deleteEmployee(userId, id);
+      res.status(204).end();
+    } catch (error) {
+      console.error("Error deleting employee:", error);
+      res.status(500).json({ message: "Error deleting employee" });
+    }
+  });
+
+
+  // Calendar endpoints
+  // ... (Tutte le rotte /calendar rimangono invariate)
+  router.get("/calendar/:year/:month", async (req: Request, res: Response) => {
+    try {
+      const userId = getUserId(req);
+      const year = parseInt(req.params.year);
+      const month = parseInt(req.params.month);
+      
+      if (isNaN(year) || isNaN(month) || month < 1 || month > 12) {
+        return res.status(400).json({ message: "Invalid year or month" });
+      }
+      
+      const apartments = await storage.getApartmentsByMonth(userId, year, month);
+      res.json(apartments);
+    } catch (error) {
+      console.error("Error fetching calendar data:", error);
+      res.status(500).json({ message: "Error fetching calendar data" });
+    }
+  });
+
+  // Questa rotta rimane, serve per altre parti (se ci sono)
+  router.get("/calendar/:year/:month/:day", async (req: Request, res: Response) => {
+    try {
+      const userId = getUserId(req);
+      const year = parseInt(req.params.year);
+      const month = parseInt(req.params.month);
+      const day = parseInt(req.params.day);
+      
+      if (isNaN(year) || isNaN(month) || isNaN(day) || 
+          month < 1 || month > 12 || day < 1 || day > 31) {
+        return res.status(400).json({ message: "Invalid date" });
+      }
+      
+      const apartments = await storage.getApartmentsByDate(userId, year, month, day);
+      res.json(apartments);
+    } catch (error) {
+      console.error("Error fetching calendar day data:", error);
+      res.status(500).json({ message: "Error fetching calendar day data" });
+    }
+  });
+
+
+  // === INIZIO MODIFICA ===
+  // Statistics endpoint
+  router.get("/statistics", async (req: Request, res: Response) => {
+    try {
+      const userId = getUserId(req);
+
+      // Leggi i parametri dalla query string
+      // Default: l'anno corrente
+      const year = req.query.year 
+        ? parseInt(req.query.year as string, 10) 
+        : new Date().getFullYear();
+      
+      // Default: il mese corrente (formato "YYYY-MM")
+      const monthYear = req.query.monthYear 
+        ? (req.query.monthYear as string) 
+        : format(new Date(), "yyyy-MM");
+
+      // Passa le opzioni a storage.getStatistics
+      const stats = await storage.getStatistics(userId, { year, monthYear });
+      
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching statistics:", error);
+      res.status(500).json({ message: "Error fetching statistics" });
+    }
+  });
+  // === FINE MODIFICA ===
+
+  // Register the API routes
+  app.use("/api", router);
+
+  const httpServer = createServer(app);
+
+  return httpServer;
+}

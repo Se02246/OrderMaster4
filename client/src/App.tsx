@@ -83,7 +83,9 @@ function AppRouter() {
           <Switch>
             <Route path="/" component={Home} />
             <Route path="/calendar" component={Calendar} />
-            <Route path="/calendar/:year/:month/:day" component={CalendarDay} />
+            {/* === CORREZIONE ROUTING 404 === */}
+            <Route path="/calendar/:date" component={CalendarDay} />
+            {/* === FINE CORREZIONE === */}
             <Route path="/employees" component={Employees} />
             <Route path="/employees/:id" component={EmployeeDetail} />
             <Route path="/statistics" component={Statistics} />

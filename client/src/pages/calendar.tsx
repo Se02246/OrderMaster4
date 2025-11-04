@@ -54,6 +54,9 @@ export default function Calendar() {
         isOpen={modalState.type === "add" || modalState.type === "edit"}
         onClose={() => setModalState({ type: null, data: null })}
         apartment={modalState.data}
+        // === CORREZIONE BUG MODALE ===
+        mode={modalState.type}
+        // === FINE CORREZIONE ===
       />
 
       {/* NUOVO BOTTONE FLUTTUANTE */}

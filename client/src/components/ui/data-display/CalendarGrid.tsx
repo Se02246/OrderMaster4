@@ -67,7 +67,11 @@ export default function CalendarGrid({ year, month, apartments, onMonthChange }:
           className={`h-28 border p-1 cursor-pointer hover:bg-gray-50 transition-colors relative group ${
             isToday ? 'bg-primary/10' : ''
           }`}
-          onClick={() => navigate(`/calendar/${year}/${month}/${day}`)}
+          // === CORREZIONE ROUTING 404 ===
+          // Il link deve corrispondere alla rotta in App.tsx e al formato
+          // atteso da calendar-day.tsx (YYYY-MM-DD)
+          onClick={() => navigate(`/calendar/${dateStr}`)}
+          // === FINE CORREZIONE ===
           data-date={dateStr}
         >
           <div className={`absolute top-1 left-1 font-medium ${isToday ? 'text-primary' : ''}`}>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState } from "react"; // Assicurati che React sia importato
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -56,7 +56,6 @@ import { EmployeeModal } from "./EmployeeModal";
 
 type FormValues = z.infer<typeof apartmentWithEmployeesSchema>;
 
-// === MODIFICA 1: Definiamo un tipo per le variabili della mutazione ===
 type MutationVariables = {
   values: FormValues;
   mode: "create" | "edit";
@@ -113,11 +112,10 @@ export function ApartmentModal({
     }
   }, [isOpen, apartment, form]);
 
-  // === MODIFICA 2: La mutazione ora accetta 'MutationVariables' ===
+  // La mutazione (corretta dalla scorsa volta)
   const mutation = useMutation({
     mutationFn: ({ values, mode, id }: MutationVariables) => {
       if (mode === "edit") {
-        // Ora controlliamo l' 'id' che è stato passato esplicitamente
         if (!id) {
           throw new Error("ID ordine non disponibile per la modifica.");
         }
@@ -131,7 +129,6 @@ export function ApartmentModal({
       const method = "POST";
       return apiRequest(method, url, values);
     },
-    // === MODIFICA 3: 'onSuccess' usa le 'variables' per il toast ===
     onSuccess: (data, variables) => {
       toast({
         title: `Ordine ${
@@ -173,17 +170,23 @@ export function ApartmentModal({
     },
   });
 
-  // === MODIFICA 4: 'onSubmit' ora passa l'oggetto 'MutationVariables' ===
-  const onSubmit = (values: FormValues) => {
-    mutation.mutate({
-      values,
-      mode: mode, // Passiamo il 'mode' dalle props correnti
-      id: apartment?.id, // Passiamo l' 'id' dalle props correnti
-    });
-  };
+  // === INIZIO CORREZIONE DEFINITIVA ===
+  // Avvolgiamo 'onSubmit' in 'React.useCallback'
+  // Questo assicura che la funzione 'onSubmit' abbia sempre accesso
+  // alle props 'mode' e 'apartment' più aggiornate.
+  const onSubmit = React.useCallback(
+    (values: FormValues) => {
+      mutation.mutate({
+        values,
+        mode: mode, // Usa la prop 'mode' corrente
+        id: apartment?.id, // Usa la prop 'apartment' corrente
+      });
+    },
+    [mode, apartment, mutation] // Dipendenze: ricrea la funzione se queste cambiano
+  );
+  // === FINE CORREZIONE DEFINITIVA ===
 
   const onEmployeeCreated = () => {
-    // Aggiorna l'elenco dei dipendenti
     queryClient.invalidateQueries({ queryKey: ["/api/employees"] });
     setIsEmployeeModalOpen(false);
   };
@@ -200,7 +203,7 @@ export function ApartmentModal({
           <Form {...form}>
             {/* Il form inizia qui */}
             <form
-              onSubmit={form.handleSubmit(onSubmit)}
+              onSubmit={form.handleSubmit(onSubmit)} // 'form.handleSubmit' ora riceverà sempre la funzione 'onSubmit' aggiornata
               className="space-y-4 overflow-y-auto px-1"
             >
               {/* Sezione Dati Principali */}
@@ -212,7 +215,6 @@ export function ApartmentModal({
                     <FormItem>
                       <FormLabel>Nome Ordine</FormLabel>
                       <FormControl>
-                        {/* === MODIFICA 1: Placeholder rimosso === */}
                         <Input {...field} />
                       </FormControl>
                       <FormMessage />
@@ -246,7 +248,6 @@ export function ApartmentModal({
                   name="cleaning_date"
                   render={({ field }) => (
                     <FormItem className="flex flex-col pt-2">
-                      {/* === MODIFICA 2: Label cambiata === */}
                       <FormLabel>Data</FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
@@ -298,7 +299,6 @@ export function ApartmentModal({
                   name="start_time"
                   render={({ field }) => (
                     <FormItem>
-                      {/* === MODIFICA 3: Label cambiata === */}
                       <FormLabel>Ora</FormLabel>
                       <FormControl>
                         <Input type="time" {...field} />
@@ -329,7 +329,7 @@ export function ApartmentModal({
                         <SelectContent>
                           <SelectItem value="Da Fare">Da Fare</SelectItem>
                           <SelectItem value="In Corso">In Corso</SelectItem>
-                          <SelectItem value="Fatto">Fatto</SelectItem>
+                          <SelectItem value="Fatto">Fatto</S-electItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -408,7 +408,6 @@ export function ApartmentModal({
                             <ToggleGroupItem
                               key={employee.id}
                               value={String(employee.id)}
-                              // === MODIFICA 4: Stile per selezione ===
                               className="flex gap-2 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary/90"
                               aria-label={`Toggle ${employee.first_name}`}
                             >

@@ -196,10 +196,12 @@ export default function Statistics() {
         {/* Top 3 Clienti */}
         <Card>
           <CardHeader className="pb-2">
+            {/* === INIZIO CORREZIONE ERRORE BUILD === */}
             <CardTitle className="text-base font-medium flex items-center gap-2">
               <Trophy className="h-5 w-5 text-yellow-500" />
               Top 3 Clienti
-            </Title>
+            </CardTitle>
+            {/* === FINE CORREZIONE ERRORE BUILD === */}
           </CardHeader>
           <CardContent>
             {stats.topEmployees.length > 0 ? (
@@ -220,10 +222,12 @@ export default function Statistics() {
         {/* Top 3 Giorni Produttivi */}
         <Card>
           <CardHeader className="pb-2">
+            {/* === INIZIO CORREZIONE ERRORE BUILD === */}
             <CardTitle className="text-base font-medium flex items-center gap-2">
               <CalendarClock className="h-5 w-5 text-blue-500" />
               Top 3 Giorni
-            </Title>
+            </CardTitle>
+            {/* === FINE CORREZIONE ERRORE BUILD === */}
           </CardHeader>
           <CardContent>
             {stats.busiestDays.length > 0 ? (

@@ -8,13 +8,11 @@ import {
   Star,
   ClipboardList,
   CreditCard,
-  // === ICONE PER NUOVA PILLOLA ===
   Calendar,
   Euro,
-  CaseSensitive, // Per A-Z
+  // CaseSensitive, // Rimosso perché non più usato
   ArrowUp,
   ArrowDown,
-  // === FINE ===
 } from "lucide-react";
 import ApartmentCard from "@/components/ui/data-display/ApartmentCard";
 import { ApartmentModal } from "@/components/ui/modals/ApartmentModal";
@@ -34,8 +32,6 @@ import { cn } from "@/lib/utils";
 // Definizioni Tipi (invariate)
 type OrderStatus = Apartment["status"];
 type PaymentStatus = Apartment["payment_status"];
-
-// === TIPO PER ORDINAMENTO ===
 type SortMode =
   | "date_asc"
   | "date_desc"
@@ -63,13 +59,11 @@ export default function Home() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Stati per i filtri (invariati)
+  // Stati (invariati)
   const [favoriteFilter, setFavoriteFilter] = useState<boolean | null>(null);
   const [statusFilter, setStatusFilter] = useState<OrderStatus | null>(null);
   const [paymentFilter, setPaymentFilter] = useState<PaymentStatus | null>(null);
-
-  // === STATO PER ORDINAMENTO ===
-  const [sortMode, setSortMode] = useState<SortMode>("date_asc");
+  const [sortMode, setSortMode] = useState<SortMode>("date_desc");
 
   const { data: apartments, isLoading, error } = useQuery<
     ApartmentWithAssignedEmployees[]
@@ -183,29 +177,29 @@ export default function Home() {
     });
   };
 
-  // === HANDLER PER ORDINAMENTO ===
+  // Handler ordinamento (invariato)
   const handleSortChange = () => {
     setSortMode((prev) => {
       switch (prev) {
-        case "date_asc":
-          return "date_desc";
         case "date_desc":
-          return "price_asc";
-        case "price_asc":
+          return "date_asc";
+        case "date_asc":
           return "price_desc";
         case "price_desc":
-          return "name_asc";
-        case "name_asc":
+          return "price_asc";
+        case "price_asc":
           return "name_desc";
         case "name_desc":
-          return "date_asc";
+          return "name_asc";
+        case "name_asc":
+          return "date_desc";
         default:
-          return "date_asc";
+          return "date_desc";
       }
     });
   };
 
-  // === FUNZIONE RENDER PER PILLOLA ORDINAMENTO ===
+  // === FUNZIONE RENDER PILLOLA ORDINAMENTO (MODIFICATA) ===
   const renderSortButtonContent = () => {
     const [key, direction] = sortMode.split("_") as [
       "date" | "price" | "name",
@@ -228,7 +222,16 @@ export default function Home() {
       icon = <Euro {...iconProps} />;
     } else {
       // 'name'
-      icon = <CaseSensitive {...iconProps} />;
+      // Sostituisce l'icona con il testo "AZ" o "ZA"
+      icon = (
+        <span
+          className="font-semibold"
+          // Stile inline per forzare la dimensione e l'allineamento
+          style={{ fontSize: "16px", lineHeight: "1" }}
+        >
+          {direction === "asc" ? "AZ" : "ZA"}
+        </span>
+      );
     }
 
     return (
@@ -240,11 +243,11 @@ export default function Home() {
   };
   // === FINE ===
 
-  // === LOGICA FILTRI E ORDINAMENTO ===
+  // Logica filtri e ordinamento (invariata)
   const processedAppointments = useMemo(() => {
     const search = searchTerm.toLowerCase();
 
-    // 1. Filtra per ricerca (invariato)
+    // 1. Filtra per ricerca
     const filteredBySearch = (apartments || []).filter((apartment) => {
       if (!search) return true;
       const cleaningDate = safeFormatDate(apartment.cleaning_date);
@@ -263,7 +266,7 @@ export default function Home() {
       );
     });
 
-    // 2. Filtra per pillole (invariato)
+    // 2. Filtra per pillole
     const filteredByAll = filteredBySearch.filter((apartment) => {
       if (
         favoriteFilter !== null &&
@@ -280,7 +283,7 @@ export default function Home() {
       return true;
     });
 
-    // 3. Ordina (invariato)
+    // 3. Ordina
     const sorted = filteredByAll.sort((a, b) => {
       switch (sortMode) {
         case "date_asc":
@@ -384,9 +387,9 @@ export default function Home() {
           </div>
         </div>
 
-        {/* === PILLOLE DI FILTRO E ORDINAMENTO === */}
+        {/* Pillole di filtro e ordinamento (invariate) */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* Filtro Preferiti (invariato) */}
+          {/* Filtro Preferiti */}
           <Button
             variant="outline"
             size="sm"
@@ -410,7 +413,7 @@ export default function Home() {
             Preferiti
           </Button>
 
-          {/* Filtro Stato Ordine (invariato) */}
+          {/* Filtro Stato Ordine */}
           <Button
             variant="outline"
             size="sm"
@@ -430,7 +433,7 @@ export default function Home() {
             {statusFilter || "Stato Ordine"}
           </Button>
 
-          {/* Filtro Pagamento (invariato) */}
+          {/* Filtro Pagamento */}
           <Button
             variant="outline"
             size="sm"
@@ -448,11 +451,11 @@ export default function Home() {
             {paymentFilter || "Pagamento"}
           </Button>
 
-          {/* === NUOVA PILLOLA ORDINAMENTO === */}
+          {/* Pillola Ordinamento (invariata) */}
           <Button
             variant="outline"
             size="sm"
-            className="gap-2 text-muted-foreground" // Aspetto neutro
+            className="gap-2 text-muted-foreground"
             onClick={handleSortChange}
             aria-label={`Ordina per ${sortMode.replace("_", " ")}`}
           >

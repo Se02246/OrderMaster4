@@ -28,11 +28,16 @@ function AppRouter() {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
-  // === INIZIO MODIFICA: Ripristina useEffect per il tema ===
+  // === INIZIO MODIFICA: Colore Arancione di Default ===
   useEffect(() => {
     const storedColor = localStorage.getItem("themeColor");
     if (storedColor) {
       document.documentElement.style.setProperty("--primary", storedColor);
+    } else {
+      // Se nessun colore è salvato, imposta l'arancione come default
+      const defaultColor = "25 95% 53%"; // HSL per Arancione
+      document.documentElement.style.setProperty("--primary", defaultColor);
+      localStorage.setItem("themeColor", defaultColor);
     }
   }, []);
   // === FINE MODIFICA ===

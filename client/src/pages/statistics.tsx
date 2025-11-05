@@ -30,6 +30,8 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+// === INIZIO MODIFICA (Aggiunta import Button) ===
+import { Button } from "@/components/ui/button";
 // === FINE MODIFICA ===
 
 
@@ -107,6 +109,9 @@ export default function Statistics() {
   // === INIZIO MODIFICA ===
   // Stato per i selettori di data
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  // === INIZIO MODIFICA (Stato temporaneo per input) ===
+  const [tempYear, setTempYear] = useState<number>(new Date().getFullYear());
+  // === FINE MODIFICA ===
   const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), "yyyy-MM"));
 
   // === INIZIO MODIFICA (Rimozione limite 5 anni) ===
@@ -114,7 +119,7 @@ export default function Statistics() {
   // const availableYears = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
   // === FINE MODIFICA ===
 
-  // Aggiorna la query per includere gli stati
+  // Aggiorna la query per includere gli stati (ora usa selectedYear, che non cambia con l'input)
   const { data: stats, isLoading, isError } = useQuery<StatisticsData>({
     queryKey: [`/api/statistics?year=${selectedYear}&monthYear=${selectedMonth}`],
   });
@@ -194,7 +199,7 @@ export default function Statistics() {
             <CardTitle className="text-base font-medium flex items-center gap-2">
               <Trophy className="h-5 w-5 text-yellow-500" />
               Top 3 Clienti
-            </CardTitle>
+            </Title>
           </CardHeader>
           <CardContent>
             {stats.topEmployees.length > 0 ? (
@@ -218,7 +223,7 @@ export default function Statistics() {
             <CardTitle className="text-base font-medium flex items-center gap-2">
               <CalendarClock className="h-5 w-5 text-blue-500" />
               Top 3 Giorni
-            </CardTitle>
+            </Title>
           </CardHeader>
           <CardContent>
             {stats.busiestDays.length > 0 ? (
@@ -306,22 +311,30 @@ export default function Statistics() {
           {/* === INIZIO MODIFICA === */}
           <CardHeader>
             <CardTitle>Ordini per Mese ({selectedYear})</CardTitle>
-            <div className="w-full max-w-sm pt-2">
+            {/* === INIZIO MODIFICA: Layout per Input + Bottone === */}
+            <div className="w-full max-w-sm pt-2 space-y-2">
               <Label htmlFor="year-picker" className="text-sm font-medium">Seleziona Anno</Label>
-              
-              {/* === INIZIO MODIFICA: Sostituito Select con Input type="number" === */}
-              <Input
-                id="year-picker"
-                type="number"
-                placeholder="Inserisci anno"
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(Number(e.target.value))}
-                className="mt-1"
-                step="1"
-              />
-              {/* === FINE MODIFICA === */}
-
+              <div className="flex items-center gap-2">
+                <Input
+                  id="year-picker"
+                  type="number"
+                  placeholder="Inserisci anno"
+                  value={tempYear} // Usa stato temporaneo
+                  onChange={(e) => setTempYear(Number(e.target.value))} // Aggiorna stato temporaneo
+                  className="mt-1"
+                  step="1"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      setSelectedYear(tempYear);
+                    }
+                  }}
+                />
+                <Button onClick={() => setSelectedYear(tempYear)} className="mt-1">
+                  Applica
+                </Button>
+              </div>
             </div>
+            {/* === FINE MODIFICA === */}
           </CardHeader>
           {/* === FINE MODIFICA === */}
           <CardContent>

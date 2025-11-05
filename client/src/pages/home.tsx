@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"; // <-- IMPORTATI
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Plus, Search } from "lucide-react";
@@ -33,11 +33,16 @@ export default function Home() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
 
-  const { data: apartments, isLoading, error } = useQuery<ApartmentWithAssignedEmployees[]>({
+  const { data: apartments, isLoading, error } = useQuery<
+    ApartmentWithAssignedEmployees[]
+  >({
     queryKey: ["/api/apartments"],
   });
 
-  const [modalState, setModalState] = useState<ModalState>({ type: null, data: null });
+  const [modalState, setModalState] = useState<ModalState>({
+    type: null,
+    data: null,
+  });
 
   // Mutazione per l'eliminazione (invariata)
   const mutation = useMutation({
@@ -64,25 +69,23 @@ export default function Home() {
     },
   });
 
-  // === NUOVA MUTAZIONE PER I PREFERITI ===
+  // === MUTAZIONE PREFERITI (MODIFICATA) ===
   const toggleFavoriteMutation = useMutation({
     mutationFn: async (apartmentId: number) => {
       return apiRequest("PATCH", `/api/apartments/${apartmentId}/toggle-favorite`);
     },
-    onSuccess: (updatedApartment: { id: number; is_favorite: boolean }) => {
-      // Aggiorna i dati in cache senza ricaricare la pagina
-      queryClient.setQueryData(
-        ["/api/apartments"],
-        (oldData: ApartmentWithAssignedEmployees[] | undefined) => {
-          if (!oldData) return oldData;
-          return oldData.map((apartment) =>
-            apartment.id === updatedApartment.id
-              ? { ...apartment, is_favorite: updatedApartment.is_favorite }
-              : apartment
-          );
-        }
-      );
+    
+    // === MODIFICA ===
+    // Ho sostituito 'setQueryData' (aggiornamento ottimistico)
+    // con 'invalidateQueries'.
+    // Questo forza un ricaricamento dei dati dal server.
+    // È il metodo più sicuro per garantire che sia la stella
+    // sia l'ordinamento (nel useMemo) si aggiornino correttamente.
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/apartments"] });
     },
+    // === FINE MODIFICA ===
+
     onError: (error) => {
       toast({
         title: "Errore",
@@ -93,7 +96,7 @@ export default function Home() {
       queryClient.invalidateQueries({ queryKey: ["/api/apartments"] });
     },
   });
-  // === FINE NUOVA MUTAZIONE ===
+  // === FINE MUTAZIONE ===
 
   const handleDelete = (apartment: ApartmentWithAssignedEmployees) => {
     setModalState({ type: "delete", data: apartment });
@@ -105,13 +108,13 @@ export default function Home() {
     }
   };
 
-  // Logica di ordinamento e filtro (invariata, ma ho corretto un bug)
+  // Logica di ordinamento e filtro (invariata)
   const processedAppointments = useMemo(() => {
     const search = searchTerm.toLowerCase();
-    
+
     const filtered = (apartments || []).filter((apartment) => {
       if (!search) return true; // Se la ricerca è vuota, includi tutto
-      
+
       // Usa la funzione sicura per le date
       const cleaningDate = safeFormatDate(apartment.cleaning_date);
 
@@ -123,7 +126,7 @@ export default function Home() {
         apartment.price?.toString(),
         cleaningDate,
         apartment.start_time,
-        ...apartment.employees.map(e => `${e.first_name} ${e.last_name}`)
+        ...apartment.employees.map((e) => `${e.first_name} ${e.last_name}`),
       ];
 
       return fieldsToSearch.some((field) =>
@@ -139,8 +142,12 @@ export default function Home() {
 
       // Regola 2: Se entrambi (o nessuno) sono preferiti, ordina per data
       try {
-        const dateA = new Date(a.cleaning_date + "T" + (a.start_time || "00:00")).getTime();
-        const dateB = new Date(b.cleaning_date + "T" + (b.start_time || "00:00")).getTime();
+        const dateA = new Date(
+          a.cleaning_date + "T" + (a.start_time || "00:00")
+        ).getTime();
+        const dateB = new Date(
+          b.cleaning_date + "T" + (b.start_time || "00:00")
+        ).getTime();
         if (isNaN(dateA)) return 1; // Metti le date non valide in fondo
         if (isNaN(dateB)) return -1;
         return dateA - dateB; // Ordine cronologico
@@ -148,26 +155,31 @@ export default function Home() {
         return 0;
       }
     });
-
   }, [apartments, searchTerm]);
-  
+
   // Skeleton e gestione errore (invariati)
   if (isLoading) {
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <Skeleton className="h-10 w-64" /> 
+          <Skeleton className="h-10 w-64" />
           <Skeleton className="h-10 w-48" />
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-60 rounded-lg" />)}
+          {[...Array(3)].map((_, i) => (
+            <Skeleton key={i} className="h-60 rounded-lg" />
+          ))}
         </div>
       </div>
     );
   }
 
   if (error) {
-    return <div className="text-red-500 text-center">Errore nel caricamento degli appuntamenti: {error.message}</div>;
+    return (
+      <div className="text-red-500 text-center">
+        Errore nel caricamento degli appuntamenti: {error.message}
+      </div>
+    );
   }
 
   return (
@@ -194,11 +206,16 @@ export default function Home() {
                 apartment={apartment}
                 onEdit={() => setModalState({ type: "edit", data: apartment })}
                 onDelete={() => handleDelete(apartment)}
-                // === PASSAGGIO DELLA NUOVA FUNZIONE ===
-                onToggleFavorite={() => toggleFavoriteMutation.mutate(apartment.id)}
-                // === FINE ===
-                onStatusChange={() => queryClient.invalidateQueries({ queryKey: ["/api/apartments"] })}
-                onPaymentChange={() => queryClient.invalidateQueries({ queryKey: ["/api/apartments"] })}
+                onToggleFavorite={() =>
+                  toggleFavoriteMutation.mutate(apartment.id)
+                }
+                // Queste props non sembrano usate dalla ApartmentCard, ma le lascio
+                onStatusChange={() =>
+                  queryClient.invalidateQueries({ queryKey: ["/api/apartments"] })
+                }
+                onPaymentChange={() =>
+                  queryClient.invalidateQueries({ queryKey: ["/api/apartments"] })
+                }
               />
             ))}
           </div>

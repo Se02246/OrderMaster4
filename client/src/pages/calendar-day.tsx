@@ -22,11 +22,11 @@ export default function CalendarDay() {
   // Sostituisco useParams con useRoute
   const [match, params] = useRoute("/calendar/:date");
   const dateParam = params ? params.date : null;
-  
+
   // Sostituisco useNavigate con useLocation
   const [location, navigate] = useLocation();
   // === FINE CORREZIONE ROUTING ===
-  
+
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -39,20 +39,31 @@ export default function CalendarDay() {
 
   // Reindirizza se la data non è valida o non è nel formato corretto
   // (La logica di navigazione è compatibile con wouter)
-  if (!dateParam || !isValid(currentDate) || dateParam !== format(currentDate, "yyyy-MM-dd")) {
-    navigate(`/calendar/${format(currentDate || new Date(), "yyyy-MM-dd")}`, { replace: true });
+  if (
+    !dateParam ||
+    !isValid(currentDate) ||
+    dateParam !== format(currentDate, "yyyy-MM-dd")
+  ) {
+    navigate(`/calendar/${format(currentDate || new Date(), "yyyy-MM-dd")}`, {
+      replace: true,
+    });
   }
-  
+
   const formattedDate = format(currentDate, "yyyy-MM-dd");
   const displayDate = format(currentDate, "EEEE d MMMM yyyy", { locale: it });
 
   // --- Fetch Dati ---
-  const { data: apartments, isLoading, error } = useQuery<ApartmentWithAssignedEmployees[]>({
+  const { data: apartments, isLoading, error } = useQuery<
+    ApartmentWithAssignedEmployees[]
+  >({
     queryKey: [`/api/apartments/date/${formattedDate}`],
   });
-  
+
   // --- Gestione Modali ---
-  const [modalState, setModalState] = useState<ModalState>({ type: null, data: null });
+  const [modalState, setModalState] = useState<ModalState>({
+    type: null,
+    data: null,
+  });
 
   // --- Mutazione per Eliminazione ---
   const mutation = useMutation({
@@ -61,18 +72,20 @@ export default function CalendarDay() {
     },
     onSuccess: () => {
       // Invalida sia la query per data specifica che quella generale
-      queryClient.invalidateQueries({ queryKey: [`/api/apartments/date/${formattedDate}`] });
+      queryClient.invalidateQueries({
+        queryKey: [`/api/apartments/date/${formattedDate}`],
+      });
       queryClient.invalidateQueries({ queryKey: ["/api/apartments"] });
       // Invalida anche calendario e statistiche
-      queryClient.invalidateQueries({ 
-        predicate: (query) => 
-          typeof query.queryKey[0] === 'string' && 
-          query.queryKey[0].startsWith('/api/calendar') 
+      queryClient.invalidateQueries({
+        predicate: (query) =>
+          typeof query.queryKey[0] === "string" &&
+          query.queryKey[0].startsWith("/api/calendar"),
       });
-      queryClient.invalidateQueries({ 
-        predicate: (query) => 
-          typeof query.queryKey[0] === 'string' && 
-          query.queryKey[0].startsWith('/api/statistics') 
+      queryClient.invalidateQueries({
+        predicate: (query) =>
+          typeof query.queryKey[0] === "string" &&
+          query.queryKey[0].startsWith("/api/statistics"),
       });
       toast({
         title: "Successo",
@@ -91,6 +104,32 @@ export default function CalendarDay() {
     },
   });
 
+  // === INIZIO AGGIUNTA: MUTAZIONE PREFERITI ===
+  const toggleFavoriteMutation = useMutation({
+    mutationFn: async (apartmentId: number) => {
+      return apiRequest("PATCH", `/api/apartments/${apartmentId}/toggle-favorite`);
+    },
+    onSuccess: () => {
+      // Invalida la query di questa pagina e quella generale
+      queryClient.invalidateQueries({
+        queryKey: [`/api/apartments/date/${formattedDate}`],
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/apartments"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Errore",
+        description: error.message || "Impossibile aggiornare il preferito.",
+        variant: "destructive",
+      });
+      // Ricarica i dati in caso di errore
+      queryClient.invalidateQueries({
+        queryKey: [`/api/apartments/date/${formattedDate}`],
+      });
+    },
+  });
+  // === FINE AGGIUNTA ===
+
   const handleDelete = (apartment: ApartmentWithAssignedEmployees) => {
     setModalState({ type: "delete", data: apartment });
   };
@@ -103,35 +142,47 @@ export default function CalendarDay() {
 
   // --- Ordinamento Ordini ---
   const sortedApartments = apartments?.sort((a, b) => {
-    // Prova a confrontare gli orari di inizio
+    // === INIZIO MODIFICA ORDINAMENTO ===
+    // Regola 1: I preferiti (is_favorite = true) vengono prima
+    if (a.is_favorite && !b.is_favorite) return -1;
+    if (!a.is_favorite && b.is_favorite) return 1;
+
+    // Regola 2: Se entrambi (o nessuno) sono preferiti, ordina per orario
     if (a.start_time && b.start_time) {
       return a.start_time.localeCompare(b.start_time);
     }
-    // Se uno manca, metti quello con orario prima
     if (a.start_time) return -1;
     if (b.start_time) return 1;
-    // Altrimenti, usa l'ID (o altro criterio stabile)
+    
+    // Regola 3: Come fallback, usa l'ID
     return a.id - b.id;
+    // === FINE MODIFICA ORDINAMENTO ===
   });
 
   // --- Rendering ---
-  
+
   if (isLoading) {
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <Skeleton className="h-10 w-64" /> 
+          <Skeleton className="h-10 w-64" />
           <Skeleton className="h-10 w-32" />
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-60 rounded-lg" />)}
+          {[...Array(3)].map((_, i) => (
+            <Skeleton key={i} className="h-60 rounded-lg" />
+          ))}
         </div>
       </div>
     );
   }
 
   if (error) {
-    return <div className="text-red-500 text-center">Errore nel caricamento degli appuntamenti: {error.message}</div>;
+    return (
+      <div className="text-red-500 text-center">
+        Errore nel caricamento degli appuntamenti: {error.message}
+      </div>
+    );
   }
 
   return (
@@ -140,7 +191,7 @@ export default function CalendarDay() {
         {/* Header Pagina */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center gap-4">
-             <Button
+            <Button
               variant="outline"
               size="icon"
               // L'hook navigate di wouter funziona correttamente qui
@@ -163,13 +214,26 @@ export default function CalendarDay() {
                 apartment={apartment}
                 onEdit={() => setModalState({ type: "edit", data: apartment })}
                 onDelete={() => handleDelete(apartment)}
+                // === AGGIUNTA PROP MANCANTE ===
+                onToggleFavorite={() =>
+                  toggleFavoriteMutation.mutate(apartment.id)
+                }
+                // === FINE AGGIUNTA ===
                 onStatusChange={() => {
-                  queryClient.invalidateQueries({ queryKey: [`/api/apartments/date/${formattedDate}`] });
-                  queryClient.invalidateQueries({ queryKey: ["/api/apartments"] });
+                  queryClient.invalidateQueries({
+                    queryKey: [`/api/apartments/date/${formattedDate}`],
+                  });
+                  queryClient.invalidateQueries({
+                    queryKey: ["/api/apartments"],
+                  });
                 }}
                 onPaymentChange={() => {
-                  queryClient.invalidateQueries({ queryKey: [`/api/apartments/date/${formattedDate}`] });
-                  queryClient.invalidateQueries({ queryKey: ["/api/apartments"] });
+                  queryClient.invalidateQueries({
+                    queryKey: [`/api/apartments/date/${formattedDate}`],
+                  });
+                  queryClient.invalidateQueries({
+                    queryKey: ["/api/apartments"],
+                  });
                 }}
               />
             ))}
@@ -197,7 +261,7 @@ export default function CalendarDay() {
           itemName={modalState.data?.name || "questo appuntamento"}
         />
       </div>
-      
+
       {/* Bottone Fluttuante per Aggiungere */}
       <Button
         onClick={() => setModalState({ type: "add", data: null })}

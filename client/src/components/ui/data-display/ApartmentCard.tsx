@@ -4,7 +4,7 @@ import { ApartmentWithAssignedEmployees } from "@shared/schema";
 import {
   Calendar,
   Clock,
-  Trash2, // <-- Rimosso 'Edit'
+  Trash2,
   Euro,
   Star,
 } from "lucide-react";
@@ -15,7 +15,7 @@ type ApartmentCardProps = {
   onEdit: () => void;
   onDelete: () => void;
   onToggleFavorite: () => void;
-  onClick?: () => void; // Questa prop non viene più usata per 'onEdit'
+  onClick?: () => void;
 };
 
 export default function ApartmentCard({
@@ -54,15 +54,13 @@ export default function ApartmentCard({
     }
   };
 
-  // Funzione 'handleEdit' rimossa.
-
   const handleDelete = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Ferma la propagazione per non aprire il modal di modifica
+    e.stopPropagation();
     onDelete();
   };
 
   const handleToggleFavorite = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Ferma la propagazione per non aprire il modal di modifica
+    e.stopPropagation();
     onToggleFavorite();
   };
 
@@ -72,10 +70,7 @@ export default function ApartmentCard({
         "bg-white rounded-lg shadow hover:shadow-md transition-shadow overflow-hidden cursor-pointer",
         apartment.is_favorite && "ring-2 ring-yellow-400"
       )}
-      // === MODIFICA ===
-      // Cliccando la card ora si apre il modal di modifica
       onClick={onEdit}
-      // === FINE MODIFICA ===
     >
       <div className="p-5">
         <div className="flex justify-between items-start mb-3">
@@ -83,33 +78,30 @@ export default function ApartmentCard({
             {apartment.name}
           </h3>
           <div className="flex space-x-1 flex-shrink-0">
-            {/* Bottone Stella (invariato) */}
+            {/* === MODIFICA ICONA STELLA === */}
             <button
               className={cn(
-                "hover:text-yellow-500 p-1",
-                apartment.is_favorite
-                  ? "text-yellow-400"
-                  : "text-gray-300 hover:text-gray-400"
+                "p-1 text-yellow-400 hover:text-yellow-500", // Colore ora sempre giallo
               )}
               aria-label="Preferito"
               onClick={handleToggleFavorite}
             >
               <Star
-                size={18}
-                fill={apartment.is_favorite ? "currentColor" : "none"}
+                size={20} // Aumentato da 18
+                fill={apartment.is_favorite ? "currentColor" : "none"} // Il 'fill' gestisce lo stato
               />
             </button>
+            {/* === FINE MODIFICA === */}
 
-            {/* === MODIFICA: Bottone 'Edit' rimosso === */}
-
-            {/* Bottone Elimina (invariato) */}
+            {/* === MODIFICA ICONA ELIMINA === */}
             <button
               className="text-red-500 hover:text-red-700 p-1"
               aria-label="Elimina"
               onClick={handleDelete}
             >
-              <Trash2 size={16} />
+              <Trash2 size={20} /> {/* Aumentato da 16 */}
             </button>
+            {/* === FINE MODIFICA === */}
           </div>
         </div>
 

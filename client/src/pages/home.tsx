@@ -2,17 +2,31 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
-import { Plus, Search } from "lucide-react";
+import {
+  Plus,
+  Search,
+  Star, // <-- AGGIUNTO
+  ClipboardList, // <-- AGGIUNTO
+  CreditCard, // <-- AGGIUNTO
+} from "lucide-react";
 import ApartmentCard from "@/components/ui/data-display/ApartmentCard";
 import { ApartmentModal } from "@/components/ui/modals/ApartmentModal";
 import ConfirmDeleteModal from "@/components/ui/modals/ConfirmDeleteModal";
-import { ApartmentWithAssignedEmployees } from "@shared/schema";
+import {
+  ApartmentWithAssignedEmployees,
+  type Apartment, // <-- AGGIUNTO
+} from "@shared/schema";
 import { ModalState } from "@/components/ui/modals/types";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
+import { cn } from "@/lib/utils"; // <-- AGGIUNTO
+
+// Definiamo i tipi per i filtri
+type OrderStatus = Apartment["status"]; // "Da Fare" | "In Corso" | "Fatto"
+type PaymentStatus = Apartment["payment_status"]; // "Da Pagare" | "Pagato"
 
 const safeFormatDate = (dateString: string | null | undefined) => {
   if (!dateString) return "";
@@ -33,6 +47,11 @@ export default function Home() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
 
+  // === STATI PER I FILTRI ===
+  const [favoriteFilter, setFavoriteFilter] = useState<boolean | null>(null);
+  const [statusFilter, setStatusFilter] = useState<OrderStatus | null>(null);
+  const [paymentFilter, setPaymentFilter] = useState<PaymentStatus | null>(null);
+
   const { data: apartments, isLoading, error } = useQuery<
     ApartmentWithAssignedEmployees[]
   >({
@@ -44,7 +63,7 @@ export default function Home() {
     data: null,
   });
 
-  // Mutazione per l'eliminazione (invariata)
+  // Mutazioni (invariate)
   const mutation = useMutation({
     mutationFn: async (apartmentId: number) => {
       await apiRequest("DELETE", `/api/apartments/${apartmentId}`);
@@ -69,43 +88,36 @@ export default function Home() {
     },
   });
 
-  // === INIZIO MODIFICA: AGGIORNAMENTO OTTIMISTICO ===
   const toggleFavoriteMutation = useMutation({
     mutationFn: async (apartmentId: number) => {
       return apiRequest("PATCH", `/api/apartments/${apartmentId}/toggle-favorite`);
     },
-    
-    // Esegui questo PRIMA della chiamata API
     onMutate: async (apartmentId: number) => {
-      // 1. Annulla le query in corso per evitare sovrascritture
       await queryClient.cancelQueries({ queryKey: ["/api/apartments"] });
-
-      // 2. Salva lo stato precedente (per il rollback)
-      const previousApartments = queryClient.getQueryData<ApartmentWithAssignedEmployees[]>(["/api/apartments"]);
-
-      // 3. Aggiorna ottimisticamente la cache
+      const previousApartments = queryClient.getQueryData<
+        ApartmentWithAssignedEmployees[]
+      >(["/api/apartments"]);
       if (previousApartments) {
         queryClient.setQueryData<ApartmentWithAssignedEmployees[]>(
           ["/api/apartments"],
           (oldData) => {
             if (!oldData) return [];
-            // Mappa i vecchi dati e inverti il 'is_favorite' solo per l'ID cliccato
             return oldData.map((apartment) =>
               apartment.id === apartmentId
-                ? { ...apartment, is_favorite: !apartment.is_favorite } 
+                ? { ...apartment, is_favorite: !apartment.is_favorite }
                 : apartment
             );
           }
         );
       }
-      // 4. Restituisci lo snapshot per il rollback
       return { previousApartments };
     },
-
-    // In caso di errore, ripristina i dati precedenti
     onError: (err, variables, context) => {
       if (context?.previousApartments) {
-        queryClient.setQueryData(["/api/apartments"], context.previousApartments);
+        queryClient.setQueryData(
+          ["/api/apartments"],
+          context.previousApartments
+        );
       }
       toast({
         title: "Errore",
@@ -113,13 +125,10 @@ export default function Home() {
         variant: "destructive",
       });
     },
-
-    // Alla fine (successo o errore), sincronizza col server per sicurezza
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/apartments"] });
     },
   });
-  // === FINE MODIFICA ===
 
   const handleDelete = (apartment: ApartmentWithAssignedEmployees) => {
     setModalState({ type: "delete", data: apartment });
@@ -131,15 +140,42 @@ export default function Home() {
     }
   };
 
-  // Logica di ordinamento e filtro (invariata)
+  // === HANDLER PER I FILTRI ===
+
+  // Ciclo Preferiti: Grigio (null) -> Giallo (true) -> Grigio (null)
+  const handleFavoriteFilterChange = () => {
+    setFavoriteFilter((prev) => (prev === null ? true : null));
+  };
+
+  // Ciclo Stato: Grigio (null) -> Rosso (Da Fare) -> Blu (In Corso) -> Verde (Fatto) -> Grigio (null)
+  const handleStatusFilterChange = () => {
+    setStatusFilter((prev) => {
+      if (prev === null) return "Da Fare";
+      if (prev === "Da Fare") return "In Corso";
+      if (prev === "In Corso") return "Fatto";
+      if (prev === "Fatto") return null;
+      return null;
+    });
+  };
+
+  // Ciclo Pagamento: Grigio (null) -> Rosso (Da Pagare) -> Verde (Pagato) -> Grigio (null)
+  const handlePaymentFilterChange = () => {
+    setPaymentFilter((prev) => {
+      if (prev === null) return "Da Pagare";
+      if (prev === "Da Pagare") return "Pagato";
+      if (prev === "Pagato") return null;
+      return null;
+    });
+  };
+
+  // === LOGICA DI FILTRAGGIO E ORDINAMENTO MODIFICATA ===
   const processedAppointments = useMemo(() => {
     const search = searchTerm.toLowerCase();
 
-    const filtered = (apartments || []).filter((apartment) => {
+    // 1. Filtra per la barra di ricerca (come prima)
+    const filteredBySearch = (apartments || []).filter((apartment) => {
       if (!search) return true;
-
       const cleaningDate = safeFormatDate(apartment.cleaning_date);
-
       const fieldsToSearch = [
         apartment.name,
         apartment.status,
@@ -150,13 +186,32 @@ export default function Home() {
         apartment.start_time,
         ...apartment.employees.map((e) => `${e.first_name} ${e.last_name}`),
       ];
-
       return fieldsToSearch.some((field) =>
         field ? field.toLowerCase().includes(search) : false
       );
     });
 
-    return filtered.sort((a, b) => {
+    // 2. Applica i filtri a pillola (combinandoli)
+    const filteredByAll = filteredBySearch.filter((apartment) => {
+      // Se un filtro è attivo (non null) e l'appartamento non corrisponde, escludilo
+      if (
+        favoriteFilter !== null &&
+        apartment.is_favorite !== favoriteFilter
+      ) {
+        return false;
+      }
+      if (statusFilter !== null && apartment.status !== statusFilter) {
+        return false;
+      }
+      if (paymentFilter !== null && apartment.payment_status !== paymentFilter) {
+        return false;
+      }
+      // Se passa tutti i filtri, includilo
+      return true;
+    });
+
+    // 3. Ordina (logica invariata)
+    return filteredByAll.sort((a, b) => {
       try {
         const dateA = new Date(
           a.cleaning_date + "T" + (a.start_time || "00:00")
@@ -164,11 +219,11 @@ export default function Home() {
         const dateB = new Date(
           b.cleaning_date + "T" + (b.start_time || "00:00")
         ).getTime();
-        
+
         if (dateA === dateB) {
-            return a.id - b.id; // Ordinamento stabile
+          return a.id - b.id; // Ordinamento stabile
         }
-        
+
         if (isNaN(dateA)) return 1;
         if (isNaN(dateB)) return -1;
         return dateA - dateB; // Ordine cronologico
@@ -176,8 +231,13 @@ export default function Home() {
         return 0;
       }
     });
-    
-  }, [apartments, searchTerm]);
+  }, [
+    apartments,
+    searchTerm,
+    favoriteFilter,
+    statusFilter,
+    paymentFilter, // Aggiunti i filtri alle dipendenze
+  ]);
 
   // Skeleton e gestione errore (invariati)
   if (isLoading) {
@@ -207,6 +267,7 @@ export default function Home() {
   return (
     <>
       <div className="space-y-6">
+        {/* Barra di ricerca (invariata) */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="relative w-full sm:max-w-xs">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -220,6 +281,73 @@ export default function Home() {
           </div>
         </div>
 
+        {/* === PILLOLE DI FILTRO (AGGIUNTE) === */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Filtro Preferiti */}
+          <Button
+            variant="outline"
+            size="sm"
+            className={cn(
+              "gap-2 transition-all",
+              favoriteFilter === true
+                ? "border-yellow-300 bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
+                : "text-muted-foreground"
+            )}
+            onClick={handleFavoriteFilterChange}
+          >
+            <Star
+              size={16}
+              className={cn(
+                favoriteFilter === true
+                  ? "text-yellow-500"
+                  : "text-gray-400"
+              )}
+              fill={favoriteFilter === true ? "currentColor" : "none"}
+            />
+            Preferiti
+          </Button>
+
+          {/* Filtro Stato Ordine */}
+          <Button
+            variant="outline"
+            size="sm"
+            className={cn(
+              "gap-2 transition-all",
+              statusFilter === null && "text-muted-foreground",
+              statusFilter === "Da Fare" &&
+                "border-red-300 bg-red-100 text-red-800 hover:bg-red-200",
+              statusFilter === "In Corso" &&
+                "border-blue-300 bg-blue-100 text-blue-800 hover:bg-blue-200",
+              statusFilter === "Fatto" &&
+                "border-green-300 bg-green-100 text-green-800 hover:bg-green-200"
+            )}
+            onClick={handleStatusFilterChange}
+          >
+            <ClipboardList size={16} />
+            {statusFilter || "Stato Ordine"}
+          </Button>
+
+          {/* Filtro Pagamento */}
+          <Button
+            variant="outline"
+            size="sm"
+            className={cn(
+              "gap-2 transition-all",
+              paymentFilter === null && "text-muted-foreground",
+              paymentFilter === "Da Pagare" && // Rosso come da richiesta
+                "border-red-300 bg-red-100 text-red-800 hover:bg-red-200",
+              paymentFilter === "Pagato" &&
+                "border-green-300 bg-green-100 text-green-800 hover:bg-green-200"
+            )}
+            onClick={handlePaymentFilterChange}
+          >
+            <CreditCard size={16} />
+            {paymentFilter || "Pagamento"}
+          </Button>
+        </div>
+        {/* === FINE PILLOLE === */}
+
+        {/* Griglia Card (logica invariata, ora usa 'processedAppointments' aggiornato) */}
         {processedAppointments && processedAppointments.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {processedAppointments.map((apartment) => (
@@ -232,18 +360,22 @@ export default function Home() {
                   toggleFavoriteMutation.mutate(apartment.id)
                 }
                 onStatusChange={() =>
-                  queryClient.invalidateQueries({ queryKey: ["/api/apartments"] })
+                  queryClient.invalidateQueries({
+                    queryKey: ["/api/apartments"],
+                  })
                 }
                 onPaymentChange={() =>
-                  queryClient.invalidateQueries({ queryKey: ["/api/apartments"] })
+                  queryClient.invalidateQueries({
+                    queryKey: ["/api/apartments"],
+                  })
                 }
               />
             ))}
           </div>
         ) : (
           <div className="text-center text-gray-500 py-10">
-            {searchTerm
-              ? "Nessun ordine trovato per questa ricerca."
+            {searchTerm || favoriteFilter || statusFilter || paymentFilter
+              ? "Nessun ordine trovato per questi filtri."
               : "Non ci sono ordini da mostrare."}
           </div>
         )}

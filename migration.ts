@@ -1,3 +1,9 @@
+// --- MODIFICA ---
+// Queste due righe caricano il file .env all'avvio
+import dotenv from 'dotenv';
+dotenv.config();
+// --- FINE MODIFICA ---
+
 import { db } from './server/db';
 import { employees, apartments, assignments } from './shared/schema';
 import fs from 'fs/promises';
@@ -112,8 +118,11 @@ async function main() {
         });
         successCount++;
       } catch (err: any) {
-        console.error(`Errore inserimento assegnazione (A:${newApartmentId}, E:${newEmployeeId}):`, err.message);
-        failCount++;
+        // Ignora errori di assegnazione duplicata (potrebbero esistere nel vecchio DB)
+        if (err.code !== '23505') { // 23505 è il codice per "unique constraint violation"
+          console.error(`Errore inserimento assegnazione (A:${newApartmentId}, E:${newEmployeeId}):`, err.message);
+          failCount++;
+        }
       }
     } else {
       console.warn(`Mappatura non trovata per assegnazione: AptID ${oldAssign.apartment_id} -> ${newApartmentId}, EmpID ${oldAssign.employee_id} -> ${newEmployeeId}`);

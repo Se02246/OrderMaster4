@@ -42,17 +42,19 @@ export default function ApartmentCard({
     }
   };
 
-  // Helper to get payment status class (invariato)
+  // === INIZIO MODIFICA ===
+  // Helper to get payment status class
   const getPaymentStatusClass = (status: string) => {
     switch (status) {
       case "Da Pagare":
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-red-100 text-red-800"; // Modificato da giallo a rosso
       case "Pagato":
         return "bg-green-100 text-green-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
   };
+  // === FINE MODIFICA ===
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -78,30 +80,28 @@ export default function ApartmentCard({
             {apartment.name}
           </h3>
           <div className="flex space-x-1 flex-shrink-0">
-            {/* === MODIFICA ICONA STELLA === */}
+            {/* Icona Stella (invariata) */}
             <button
               className={cn(
-                "p-1 text-yellow-400 hover:text-yellow-500", // Colore ora sempre giallo
+                "p-1 text-yellow-400 hover:text-yellow-500", 
               )}
               aria-label="Preferito"
               onClick={handleToggleFavorite}
             >
               <Star
-                size={20} // Aumentato da 18
-                fill={apartment.is_favorite ? "currentColor" : "none"} // Il 'fill' gestisce lo stato
+                size={20}
+                fill={apartment.is_favorite ? "currentColor" : "none"}
               />
             </button>
-            {/* === FINE MODIFICA === */}
 
-            {/* === MODIFICA ICONA ELIMINA === */}
+            {/* Icona Elimina (invariata) */}
             <button
               className="text-red-500 hover:text-red-700 p-1"
               aria-label="Elimina"
               onClick={handleDelete}
             >
-              <Trash2 size={20} /> {/* Aumentato da 16 */}
+              <Trash2 size={20} />
             </button>
-            {/* === FINE MODIFICA === */}
           </div>
         </div>
 
@@ -127,6 +127,7 @@ export default function ApartmentCard({
           >
             {apartment.status}
           </span>
+          {/* Questo badge ora userà la nuova classe rossa */}
           <span
             className={`px-2 py-1 text-xs font-medium rounded-full ${getPaymentStatusClass(
               apartment.payment_status

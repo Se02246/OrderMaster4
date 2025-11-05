@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { SafeUser } from "@shared/schema";
 // --- INIZIO MODIFICA ---
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Eye, EyeOff } from "lucide-react"; // Importa Eye e EyeOff
 import { Alert, AlertDescription } from "@/components/ui/alert";
 // --- FINE MODIFICA ---
 
@@ -34,6 +34,12 @@ export default function LoginPage() {
   const { toast } = useToast();
   const [isLoginPending, setIsLoginPending] = useState(false);
   const [isRegisterPending, setIsRegisterPending] = useState(false);
+  
+  // --- INIZIO MODIFICA ---
+  // Aggiungi stati per mostrare/nascondere le password
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
+  // --- FINE MODIFICA ---
 
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -92,14 +98,12 @@ export default function LoginPage() {
               <CardTitle>Accedi al tuo account</CardTitle>
             </CardHeader>
             <CardContent>
-              {/* --- INIZIO MODIFICA --- */}
               <Alert variant="destructive" className="mb-4">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription className="text-xs">
                   Attenzione: al momento non è disponibile il recupero password. Assicurati di salvare le tue credenziali!
                 </AlertDescription>
               </Alert>
-              {/* --- FINE MODIFICA --- */}
               <Form {...loginForm}>
                 <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
                   <FormField
@@ -115,6 +119,7 @@ export default function LoginPage() {
                       </FormItem>
                     )}
                   />
+                  {/* --- INIZIO MODIFICA CAMPO PASSWORD LOGIN --- */}
                   <FormField
                     control={loginForm.control}
                     name="password"
@@ -122,12 +127,34 @@ export default function LoginPage() {
                       <FormItem>
                         <FormLabel>Password</FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="••••••••" {...field} />
+                          <div className="relative">
+                            <Input
+                              type={showLoginPassword ? "text" : "password"}
+                              placeholder="••••••••"
+                              className="pr-10" // Aggiungi padding per l'icona
+                              {...field}
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground hover:bg-transparent"
+                              onClick={() => setShowLoginPassword((prev) => !prev)}
+                              tabIndex={-1} // Evita che il bottone sia raggiungibile con Tab
+                            >
+                              {showLoginPassword ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+                  {/* --- FINE MODIFICA CAMPO PASSWORD LOGIN --- */}
                   <Button type="submit" className="w-full" disabled={isLoginPending}>
                     {isLoginPending ? "Accesso in corso..." : "Accedi"}
                   </Button>
@@ -142,14 +169,12 @@ export default function LoginPage() {
               <CardTitle>Crea un nuovo account</CardTitle>
             </CardHeader>
             <CardContent>
-              {/* --- INIZIO MODIFICA --- */}
               <Alert variant="destructive" className="mb-4">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription className="text-xs">
                   Attenzione: al momento non è disponibile il recupero password. Assicurati di salvare le tue credenziali!
                 </AlertDescription>
               </Alert>
-              {/* --- FINE MODIFICA --- */}
               <Form {...registerForm}>
                 <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4">
                   <FormField
@@ -165,6 +190,7 @@ export default function LoginPage() {
                       </FormItem>
                     )}
                   />
+                  {/* --- INIZIO MODIFICA CAMPO PASSWORD REGISTRAZIONE --- */}
                   <FormField
                     control={registerForm.control}
                     name="password"
@@ -172,12 +198,34 @@ export default function LoginPage() {
                       <FormItem>
                         <FormLabel>Password</FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="Min. 6 caratteri" {...field} />
+                          <div className="relative">
+                            <Input
+                              type={showRegisterPassword ? "text" : "password"}
+                              placeholder="Min. 6 caratteri"
+                              className="pr-10" // Aggiungi padding per l'icona
+                              {...field}
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground hover:bg-transparent"
+                              onClick={() => setShowRegisterPassword((prev) => !prev)}
+                              tabIndex={-1} // Evita che il bottone sia raggiungibile con Tab
+                            >
+                              {showRegisterPassword ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+                  {/* --- FINE MODIFICA CAMPO PASSWORD REGISTRAZIONE --- */}
                   <Button type="submit" className="w-full" disabled={isRegisterPending}>
                     {isRegisterPending ? "Registrazione..." : "Registrati"}
                   </Button>

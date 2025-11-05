@@ -50,6 +50,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   // === INIZIO MODIFICA TEMA ===
   // Funzione per cambiare il colore primario e salvarlo
   const handleChangeTheme = (color: string) => {
+    // 'color' ora è una stringa HSL, es: "0 84% 60%"
     document.documentElement.style.setProperty("--primary", color);
     localStorage.setItem("themeColor", color);
 
@@ -101,26 +102,27 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             <h3 className="text-sm font-semibold text-gray-600 mb-3 px-3">CAMBIA TEMA</h3>
             <div className="flex justify-around">
               <button
-                onClick={() => handleChangeTheme("#3b82f6")} // Blu
-                // Queste classi ora funzioneranno
+                // CORREZIONE: Passa i valori HSL per il Blu
+                onClick={() => handleChangeTheme("221 83% 53%")} 
+                // La classe 'bg-blue-500' serve solo per il pulsante stesso
                 className="w-8 h-8 rounded-full bg-blue-500 border-2 border-white shadow hover:ring-2 hover:ring-blue-300 focus:outline-none"
                 aria-label="Tema Blu"
               />
               <button
-                onClick={() => handleChangeTheme("#ef4444")} // Rosso
-                // Queste classi ora funzioneranno
+                // CORREZIONE: Passa i valori HSL per il Rosso
+                onClick={() => handleChangeTheme("0 84% 60%")} 
                 className="w-8 h-8 rounded-full bg-red-500 border-2 border-white shadow hover:ring-2 hover:ring-red-300 focus:outline-none"
                 aria-label="Tema Rosso"
               />
               <button
-                onClick={() => handleChangeTheme("#22c55e")} // Verde
-                // Queste classi ora funzioneranno
+                // CORREZIONE: Passa i valori HSL per il Verde
+                onClick={() => handleChangeTheme("145 63% 49%")} 
                 className="w-8 h-8 rounded-full bg-green-500 border-2 border-white shadow hover:ring-2 hover:ring-green-300 focus:outline-none"
                 aria-label="Tema Verde"
               />
               <button
-                onClick={() => handleChangeTheme("#f97316")} // Arancione
-                // Queste classi ora funzioneranno
+                // CORREZIONE: Passa i valori HSL per l'Arancione
+                onClick={() => handleChangeTheme("25 95% 53%")} 
                 className="w-8 h-8 rounded-full bg-orange-500 border-2 border-white shadow hover:ring-2 hover:ring-orange-300 focus:outline-none"
                 aria-label="Tema Arancione"
               />

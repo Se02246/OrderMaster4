@@ -104,13 +104,12 @@ export default function CalendarDay() {
     },
   });
 
-  // === INIZIO AGGIUNTA: MUTAZIONE PREFERITI ===
+  // Mutazione preferiti (invariata)
   const toggleFavoriteMutation = useMutation({
     mutationFn: async (apartmentId: number) => {
       return apiRequest("PATCH", `/api/apartments/${apartmentId}/toggle-favorite`);
     },
     onSuccess: () => {
-      // Invalida la query di questa pagina e quella generale
       queryClient.invalidateQueries({
         queryKey: [`/api/apartments/date/${formattedDate}`],
       });
@@ -122,13 +121,11 @@ export default function CalendarDay() {
         description: error.message || "Impossibile aggiornare il preferito.",
         variant: "destructive",
       });
-      // Ricarica i dati in caso di errore
       queryClient.invalidateQueries({
         queryKey: [`/api/apartments/date/${formattedDate}`],
       });
     },
   });
-  // === FINE AGGIUNTA ===
 
   const handleDelete = (apartment: ApartmentWithAssignedEmployees) => {
     setModalState({ type: "delete", data: apartment });
@@ -143,14 +140,15 @@ export default function CalendarDay() {
   // --- Ordinamento Ordini ---
   const sortedApartments = apartments?.sort((a, b) => {
     // === INIZIO MODIFICA ORDINAMENTO ===
-    // Regola 1: I preferiti (is_favorite = true) vengono prima
-    if (a.is_favorite && !b.is_favorite) return -1;
-    if (!a.is_favorite && b.is_favorite) return 1;
-
-    // Regola 2: Se entrambi (o nessuno) sono preferiti, ordina per orario
+    // Ordina solo per orario.
+    // Tutta la logica 'is_favorite' è stata rimossa.
     if (a.start_time && b.start_time) {
-      return a.start_time.localeCompare(b.start_time);
+      const timeComparison = a.start_time.localeCompare(b.start_time);
+      if (timeComparison !== 0) {
+        return timeComparison;
+      }
     }
+    // Se uno manca, metti quello con orario prima
     if (a.start_time) return -1;
     if (b.start_time) return 1;
     
@@ -214,11 +212,9 @@ export default function CalendarDay() {
                 apartment={apartment}
                 onEdit={() => setModalState({ type: "edit", data: apartment })}
                 onDelete={() => handleDelete(apartment)}
-                // === AGGIUNTA PROP MANCANTE ===
                 onToggleFavorite={() =>
                   toggleFavoriteMutation.mutate(apartment.id)
                 }
-                // === FINE AGGIUNTA ===
                 onStatusChange={() => {
                   queryClient.invalidateQueries({
                     queryKey: [`/api/apartments/date/${formattedDate}`],
@@ -249,9 +245,7 @@ export default function CalendarDay() {
           isOpen={modalState.type === "add" || modalState.type === "edit"}
           onClose={() => setModalState({ type: null, data: null })}
           apartment={modalState.data}
-          // === CORREZIONE BUG MODALE (Già applicata in precedenza) ===
           mode={modalState.type}
-          // === FINE CORREZIONE ===
         />
         <ConfirmDeleteModal
           isOpen={modalState.type === "delete"}

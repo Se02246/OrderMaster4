@@ -1,0 +1,731 @@
+[{
+  "id": 37,
+  "name": "Alba carta",
+  "cleaning_date": "2025-05-18",
+  "start_time": "10:00",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "Torta  da 1,5 kg,Pan di spagna con crema al limone senza lattosio, decorata con panna , sopra con un po' di frutta mista e macaron verdi e praline verdi e gialle",
+  "price": null
+}, {
+  "id": 32,
+  "name": "Crostata frutta",
+  "cleaning_date": "2025-05-09",
+  "start_time": "21:00",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "Crostata frutta frolla con crema pasticcera vaniglia",
+  "price": null
+}, {
+  "id": 35,
+  "name": "Catering salato loculi",
+  "cleaning_date": "2025-05-10",
+  "start_time": "",
+  "end_time": "17:00",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "Due tranci pizza alla margherita \n30 tramezzini \nprosciutto cotto e formaggio \nPomodoro maionese e tonno\nPancetta e formaggio \n",
+  "price": null
+}, {
+  "id": 26,
+  "name": "Dolci misti",
+  "cleaning_date": "2025-05-10",
+  "start_time": "19:00",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "Pasticcini freschi anche gluten free senza lattosio \nCiambellone \nCrostate \nPasticcini frolla, anche gluten free ",
+  "price": null
+}, {
+  "id": 21,
+  "name": "1 kg pasticcini freschi e 2 cheesecake ",
+  "cleaning_date": "2025-04-19",
+  "start_time": "",
+  "end_time": "19:00",
+  "status": "Fatto",
+  "payment_status": "Pagato",
+  "notes": "",
+  "price": null
+}, {
+  "id": 19,
+  "name": "Pasticcini gluten free no lattosio",
+  "cleaning_date": "2025-04-19",
+  "start_time": "",
+  "end_time": "17:00",
+  "status": "Fatto",
+  "payment_status": "Pagato",
+  "notes": "30 euro al kg",
+  "price": null
+}, {
+  "id": 22,
+  "name": "Torta ",
+  "cleaning_date": "2025-04-19",
+  "start_time": "16:05",
+  "end_time": "",
+  "status": "Fatto",
+  "payment_status": "Pagato",
+  "notes": "Pasta sfoglia gluten free senza lattosio, crema chantilly alla vaniglia, scritta nonno sei il migliore, con aggiunta di animali, con lati ricoperti di granella da 1,5 kg",
+  "price": null
+}, {
+  "id": 42,
+  "name": "Per la classe di lorena",
+  "cleaning_date": "2025-06-05",
+  "start_time": "10:00",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "Fare un kg pizzette sfoglia \n1 kg bignè ",
+  "price": null
+}, {
+  "id": 23,
+  "name": "Pasticcini freschi",
+  "cleaning_date": "2025-04-21",
+  "start_time": "08:08",
+  "end_time": "",
+  "status": "Fatto",
+  "payment_status": "Pagato",
+  "notes": "1 kg pasticcini freschi senza lattosio misti",
+  "price": null
+}, {
+  "id": 24,
+  "name": "Catering Onanì ",
+  "cleaning_date": "2025-04-22",
+  "start_time": "11:00",
+  "end_time": "",
+  "status": "Fatto",
+  "payment_status": "Pagato",
+  "notes": "2 kg pizzette sfoglia \n2 kg pasticcini freschi senza lattosio misti\n50 PZ mini tramezzini ",
+  "price": null
+}, {
+  "id": 44,
+  "name": "Torta senza lattosio ",
+  "cleaning_date": "2025-06-13",
+  "start_time": "15:00",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "Torta  rettangolare 3,5 kg,Pan di spagna, crema chantilly  senza lattosio ,decorata con un po' di frutta , cordone meringa, panna a coprire, scritta, auguri mamma e nonna",
+  "price": null
+}, {
+  "id": 25,
+  "name": "Prima comunione  torta e padticcini",
+  "cleaning_date": "2025-05-17",
+  "start_time": "19:00",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "Torta prima comunione, da 2,5 kg, Pan di spagna classico crema vaniglia senza lattosio con fragole all interno, decorata con panna e fragole , fare mazzo kg pasticcini secchi e mezzo kg pasticcini secchi gluten free ",
+  "price": null
+}, {
+  "id": 30,
+  "name": "Torta e pizzette  prima comunione ",
+  "cleaning_date": "2025-05-17",
+  "start_time": "19:00",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "Torta 4 kg,  ( 28€ al kg) Pan di spagna classico, crema vaniglia con cioccolato bianco ricoperta di panna con decorazioni alla meringa all italiana, con scritta la mia prima comunione in pasta di zucchero sul giallo, 2 kg di kg pizzette sfoglia( 17€) ",
+  "price": null
+}, {
+  "id": 28,
+  "name": "3 kg pasticcini freschi misti",
+  "cleaning_date": "2025-05-03",
+  "start_time": "08:00",
+  "end_time": "",
+  "status": "Fatto",
+  "payment_status": "Pagato",
+  "notes": "",
+  "price": null
+}, {
+  "id": 41,
+  "name": "Torta  Pan di spagna senza latte e uova",
+  "cleaning_date": "2025-06-17",
+  "start_time": "15:00",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "Torta Pan di spagna senza latte e uova da 2 kg con panna e fragole \nUtilizzare latte altro di soia\nPanna hopla vegana alla soia, quella rosa",
+  "price": null
+}, {
+  "id": 31,
+  "name": "Torta compleanno ",
+  "cleaning_date": "2025-05-10",
+  "start_time": "",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "Torta compleanno 4 kg , rettangolare, pandispagna classico crema  chantilly vaniglia e crema cioccolato, cialda squid game con scritto auguri Robert +8 , con colata cioccolato ai lati e ciuffi panna rosso e nero .....PAGARE28€",
+  "price": 28.00
+}, {
+  "id": 33,
+  "name": "Torta compleanno ",
+  "cleaning_date": "2025-05-16",
+  "start_time": "15:00",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "Torta da 3 kg, forma  rettangolare ,pasta sfoglia con crema pasticcera al limone senza lattosio, bordi ricoperti da sfoglia sbriciolata, contornata di panna sopra e sotto , terminare la base con crema e frutta fresca, scritta colore verde con stecco , auguri angelo 30 \nMonoporzione tortina sfoglia gluten free con caratteristiche identiche alla torta ",
+  "price": null
+}, {
+  "id": 36,
+  "name": "Buffet salato orosei",
+  "cleaning_date": "2025-05-14",
+  "start_time": "",
+  "end_time": "16:00",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "1 kg roll pane lentu con purouzza, formaggio e melanzane\n1 teglia pizza margherita \n1 vassoio tramezzini a quadretti prosciutto cotto e formaggio ",
+  "price": null
+}, {
+  "id": 45,
+  "name": "Torta 2 kg Pan di spagna, poca panna gialla e ciliegie con farfalle e fiori",
+  "cleaning_date": "2025-06-23",
+  "start_time": "16:00",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "Torta  e 2 pizze...metà margherita, metà salsiccia, metà salsiccia e olive, metà wurstel, le pizze per le 19,30",
+  "price": null
+}, {
+  "id": 43,
+  "name": "Pasticcini freschi ",
+  "cleaning_date": "2025-06-22",
+  "start_time": "19:00",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "1 kg pasticcini freschi misti \n509 gr pasticcini freschi misti ",
+  "price": null
+}, {
+  "id": 29,
+  "name": "Pasticcini mignon ",
+  "cleaning_date": "2025-05-19",
+  "start_time": "19:00",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "1 kg pasticcini freschi misti \n500 gr pasticcini freschi misti ",
+  "price": null
+}, {
+  "id": 40,
+  "name": "Pasticcini secchi senza glutine",
+  "cleaning_date": "2025-05-31",
+  "start_time": "19:00",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "500 gr pasticcini secchi senza glutine ",
+  "price": null
+}, {
+  "id": 39,
+  "name": "Torta senza lattosio ",
+  "cleaning_date": "2025-06-02",
+  "start_time": "",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "Pan di spagna , crema chantilly, bagna analcolica, frutta fresca e panna, senza lattosio da 2,5 kg",
+  "price": null
+}, {
+  "id": 38,
+  "name": "Pasticceria mignon ",
+  "cleaning_date": "2025-06-08",
+  "start_time": "",
+  "end_time": "10:00",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "1,5 kg pasticcini freschi normali \n500 gr pasticcini freschi senza lattosio \nConsegna per l otto mattina o il sette sera ",
+  "price": null
+}, {
+  "id": 27,
+  "name": "Cresima Galtellì ",
+  "cleaning_date": "2025-06-06",
+  "start_time": "19:30",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "1pizzette, 1 roll lentu,1polpette, 50 mini tramezzini €120",
+  "price": 120.00
+}, {
+  "id": 48,
+  "name": "Buffet per Galtellì ",
+  "cleaning_date": "2025-06-28",
+  "start_time": "17:00",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "Totale355€",
+  "price": 355.00
+}, {
+  "id": 34,
+  "name": "Battesimo Galtellì gluten free per il 14 giugno",
+  "cleaning_date": "2025-06-13",
+  "start_time": "15:30",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Da Pagare",
+  "notes": "1 kg pasticcini misti freschi e secchi gluten free \n500 gr salato gluten free tra pizzette e cornetti \nRitiro il 14 giugno verso le 15.30..totale € 45",
+  "price": 45.00
+}, {
+  "id": 52,
+  "name": "Torta 1,5 kg",
+  "cleaning_date": "2025-07-11",
+  "start_time": "18:00",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "Torta Pan di spagna, crema pasticcera, granella nocciola, cordoni panna e frutta mista",
+  "price": null
+}, {
+  "id": 49,
+  "name": "Due monoporzioni  gluten free in vetro cheesecake al cioccolato ",
+  "cleaning_date": "2025-07-17",
+  "start_time": "18:00",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "Totale16€... Gluten free",
+  "price": 16.00
+}, {
+  "id": 53,
+  "name": "15casatine",
+  "cleaning_date": "2025-07-10",
+  "start_time": "11:00",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "Casatine salate con menta",
+  "price": null
+}, {
+  "id": 47,
+  "name": "Pasticcini freschi bignè e cannoli crema e cioccolato ",
+  "cleaning_date": "2025-07-08",
+  "start_time": "20:00",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "1 kg bignè e cannoli crema e cioccolato \n500 gr bignè e cannoli crema e cioccolato \n",
+  "price": null
+}, {
+  "id": 55,
+  "name": "Buffet salato compleanno",
+  "cleaning_date": "2025-07-21",
+  "start_time": "17:00",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "1 kg pizzette, 1 torta rustica zucchine,1 kg polpettine polenta, 1 kg quadretti verdure, 1 kg rustici, 1 kg cornetti, 1 kg cestini pillo, 2 focaccia barese... 30 spiedini di frutta , 1 porzione gluten free..totale 300€",
+  "price": 300.00
+}, {
+  "id": 54,
+  "name": "Buffet salato compleanno ",
+  "cleaning_date": "2025-07-16",
+  "start_time": "12:00",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "50 tramezzini, 1 kg pizzette, 1 kg roll pane lentu, 1 kg rustici, 1 kg cornetti, 20 panini olio, 15 buns, totale 230€",
+  "price": 230.00
+}, {
+  "id": 46,
+  "name": "Antipasto salato gluten free",
+  "cleaning_date": "2025-07-01",
+  "start_time": "",
+  "end_time": "18:30",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "Polpette polenta e tonno\nCroissant cotto e funghi con provola \nCips riso zucchine pomodorini ecc\nTotale 45€",
+  "price": 45.00
+}, {
+  "id": 50,
+  "name": "Torta 2 kg",
+  "cleaning_date": "2025-07-18",
+  "start_time": "19:30",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "Pandispagna, panna e frutta con crema al limone, 2 kg",
+  "price": null
+}, {
+  "id": 56,
+  "name": "Buffer salato loculi",
+  "cleaning_date": "2025-07-18",
+  "start_time": "19:00",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "1 kg pizzette, 1 kg polpettine,1kg rustici, 1 kg cornetti,1 kg cestini pillo, 1 kg roll tramezzini € 150",
+  "price": 150.00
+}, {
+  "id": 66,
+  "name": "2 kg pizzette ",
+  "cleaning_date": "2025-08-08",
+  "start_time": "16:00",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "",
+  "price": null
+}, {
+  "id": 68,
+  "name": "Torta compleanno ",
+  "cleaning_date": "2025-08-10",
+  "start_time": "12:00",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "Torta pasta sfoglia, crema al burro, nuda ai lati, panna e frutta a decorare, scritta rossa, nonna e mamma meravigliosa 60,  da 2,5 kg rettangolare, ritiro per mezzogiorno ",
+  "price": null
+}, {
+  "id": 64,
+  "name": "Torta 2 kg, più torta monoporzione",
+  "cleaning_date": "2025-08-10",
+  "start_time": "16:00",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "Torta Pan di spagna, crema al limone,senza lattosio,,bagna alchermes alcolica, decorazioni fiori fresci\nMonoporzione uguale ma gluten free",
+  "price": null
+}, {
+  "id": 91,
+  "name": "Buffet salato per 100 persone ",
+  "cleaning_date": "2025-11-29",
+  "start_time": "",
+  "end_time": null,
+  "status": "Da Fare",
+  "payment_status": "Da Pagare",
+  "notes": "59 buns\n50 panini olio\n100 mini tramezzini \n4 torte salate\n4 teglie pizza mista\n1 kg cestini pillo\n2 kg cips riso\n1 kg polpettine\n2 kg roll pane lentu ",
+  "price": 600.00
+}, {
+  "id": 57,
+  "name": "1 vassoio gluten free senza lattosio per 1 persone ",
+  "cleaning_date": "2025-07-28",
+  "start_time": "17:00",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": " pizzette,  cornetti, tramezzini, \nSenza lattosio, gluten free",
+  "price": null
+}, {
+  "id": 76,
+  "name": "Pasticcini gluten free ",
+  "cleaning_date": "2025-10-14",
+  "start_time": "16:30",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "1,5 kg pasticcini gluten free misti crema e frolla",
+  "price": null
+}, {
+  "id": 60,
+  "name": "Buffet misto da consegnare  alle 11 al bivio di Lula ",
+  "cleaning_date": "2025-08-01",
+  "start_time": "11:00",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "Tramezzini, panini, cestini pillo, pizza farcita e margherita",
+  "price": null
+}, {
+  "id": 61,
+  "name": "Torta compleanno per marilisa vassoio misto dolce e salato",
+  "cleaning_date": "2025-07-31",
+  "start_time": "",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "",
+  "price": null
+}, {
+  "id": 67,
+  "name": "1,5 kg pasticcini freschi, 1,5 kg pizzette sfoglia ",
+  "cleaning_date": "2025-08-11",
+  "start_time": "23:00",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Da Pagare",
+  "notes": "Ritiro la sera alle 23",
+  "price": null
+}, {
+  "id": 87,
+  "name": "Torta 1,5 kg",
+  "cleaning_date": "2025-10-30",
+  "start_time": "13:00",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "Torta Pan di spagna, crema nocciola, rivestita con panna decorare a piacere ",
+  "price": null
+}, {
+  "id": 79,
+  "name": "Catering misto",
+  "cleaning_date": "2025-10-05",
+  "start_time": "17:00",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "Catering € 300  misto\nPanini olio 100, polpette 2 kg, 50 tramezzini, 2 kg rustici,ecc",
+  "price": null
+}, {
+  "id": 62,
+  "name": "Pasticcini e salato  per Cristian ",
+  "cleaning_date": "2025-08-07",
+  "start_time": "",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "",
+  "price": null
+}, {
+  "id": 83,
+  "name": "Casatine prosciutto e pancetta ",
+  "cleaning_date": "2025-08-28",
+  "start_time": "12:30",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Da Pagare",
+  "notes": "2 etti crudo \n 2 etti pancetta \n3 casatine\n€25",
+  "price": 25.00
+}, {
+  "id": 72,
+  "name": "2 torte  da 2kg gluten free senza lattosio ",
+  "cleaning_date": "2025-08-23",
+  "start_time": "",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "Torta gluten free 2kg, con frutta, panna verde, personaggi Ninjago, crema senza lattosio...orario  ritiro 15.....\nUna torta solo frutta, pesche, uva e ciliegie, l altra con Ninjago e frutta",
+  "price": null
+}, {
+  "id": 86,
+  "name": "Torta cresima 2kg",
+  "cleaning_date": "2025-11-01",
+  "start_time": "12:30",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "Torta Pan di spagna, chantilly, bagna fruttata analcolica, rivestita con panna, decorare con meringa italiana e fiori freschi bianchi e tosa",
+  "price": 0.00
+}, {
+  "id": 69,
+  "name": "Torta e pizzette",
+  "cleaning_date": "2025-08-17",
+  "start_time": "14:30",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "Torta 2 kg, crema vaniglia, senza lattosio decorata con panna , ai lati fettine di pesca\n1 kg pizzette sfoglia ",
+  "price": null
+}, {
+  "id": 70,
+  "name": "Pasticcini mignon",
+  "cleaning_date": "2025-08-17",
+  "start_time": "21:30",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "1 kg di mignon\n500 gr di mignon\nRitira mari sorella",
+  "price": null
+}, {
+  "id": 59,
+  "name": "1 ciambellone semplice gluten free, senza lattosio ",
+  "cleaning_date": "2025-08-17",
+  "start_time": "19:00",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "1 ciambellone classico con zucchero a velo , gluten free, senza lattosio ",
+  "price": null
+}, {
+  "id": 71,
+  "name": "Torta  2 kg",
+  "cleaning_date": "2025-08-16",
+  "start_time": "10:30",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "Torta con frutta( ciliegio , uva, pesche)Pan di spagna crema chantilly, 2 kg con scritta fucsia buon compleanno...da consegnare bivio di Lula alla 10,30 del mattino ",
+  "price": null
+}, {
+  "id": 65,
+  "name": "Torta Pan di spagna da 1 kg gluten free senza lattosio ",
+  "cleaning_date": "2025-08-15",
+  "start_time": "",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "Torta Pan di spagna gluten  free con crema  senza lattosio e frutta fresca, orario ritiro da definire",
+  "price": null
+}, {
+  "id": 73,
+  "name": "1 kg pizzette sfoglia",
+  "cleaning_date": "2025-08-30",
+  "start_time": "13:00",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Da Pagare",
+  "notes": "Consegna entro le 13",
+  "price": null
+}, {
+  "id": 74,
+  "name": "Catering salato misto",
+  "cleaning_date": "2025-09-01",
+  "start_time": "12:00",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Da Pagare",
+  "notes": "Tramezzini, polpette melanzane, rustici, pizzette, cornetti, due vassoi grandi",
+  "price": null
+}, {
+  "id": 51,
+  "name": "Buffet salato + torta, + vassoio gluten free, + vassoio senza lattosio ",
+  "cleaning_date": "2025-08-23",
+  "start_time": "15:00",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "Torta 4 kg tema George, scritta in verde, auguri Tommaso 2,  immagini George, panna e frutta con crema al  cocco\nVassoio  gluten free €50 per 2 persone \nVassoio senza lattosio €50 per 2 persone \nBuffet salato( roll pane lentu, tramezzini, panini all olio, pizzette sfoglia)",
+  "price": 100.00
+}, {
+  "id": 58,
+  "name": "2 kg mignon senza lattosio ...1 kg mignon normali",
+  "cleaning_date": "2025-08-02",
+  "start_time": "17:30",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "2 kg mignon senza lattosio e 1 kg mignon normali...\n€54\n€25",
+  "price": 78.00
+}, {
+  "id": 77,
+  "name": "Pasticcini gluten free ",
+  "cleaning_date": "2025-10-23",
+  "start_time": "17:00",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "Pasticcini gluten free, bombon, cannoli, bignè, 1,5 kg",
+  "price": null
+}, {
+  "id": 85,
+  "name": "Catering 18esimo Galtellì ",
+  "cleaning_date": "2025-12-13",
+  "start_time": "16:01",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Da Pagare",
+  "notes": "2 teglie pizza\n60 pz roll tramezzini \n60 panini olio\n1 kg riso cips\n40 spicchi spianate farcite\nTotale 300€",
+  "price": 300.00
+}, {
+  "id": 81,
+  "name": "Pasticcini e pizzette ",
+  "cleaning_date": "2025-10-28",
+  "start_time": "",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "1 kg pasticcini fresco€25\n1 kg pizzette  €22",
+  "price": 47.00
+}, {
+  "id": 78,
+  "name": "Pasticcini misti ",
+  "cleaning_date": "2025-10-24",
+  "start_time": "16:30",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "4 kg pasticcini misti, frolla e crema, € 100",
+  "price": 100.00
+}, {
+  "id": 80,
+  "name": "Catering misto",
+  "cleaning_date": "2025-10-04",
+  "start_time": "16:00",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "1 kg roll lentu, 1 kg rustici, 1 kg polpettine,1 kg  cornetti \n1 vassoio misto gluten free\n€185",
+  "price": 185.00
+}, {
+  "id": 82,
+  "name": "Catering cena matrimonio ",
+  "cleaning_date": "2025-09-25",
+  "start_time": "19:00",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "Catering misto + gluten free €500",
+  "price": 500.00
+}, {
+  "id": 75,
+  "name": "Catering salato e dolce normale e gluten ",
+  "cleaning_date": "2025-09-05",
+  "start_time": "16:00",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Da Pagare",
+  "notes": "3 kg dolcetti secchi\n1 kg dolcetti secchi gluten senza lattosio \n1 kg torta Pan di spagna crema vaniglia decorata con frutta e panna gluten senza lattosio \n2 kg pizzette sfoglia \n1 kg salato misto gluten senza lattosio ( polpette melanzane, cornetti, pizzette)\nTotale circa 226€\n",
+  "price": 226.00
+}, {
+  "id": 63,
+  "name": "Buffet salato +1 vazzoio gluten free",
+  "cleaning_date": "2025-07-26",
+  "start_time": "18:30",
+  "end_time": "",
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "500 gr pizzette sfoglia \n1 kg polpette melanzane \n500 gr cornetti sfoglia\n1 kg roll pane lentu \n1 pizza gorgonzola purpuzza cipolla \n1 pizza margherita \n1 pizza wurstel e olive\n1 vassoio per due gluten free\nTotale200€",
+  "price": 200.00
+}, {
+  "id": 94,
+  "name": "18 anni buffet salato/ torta",
+  "cleaning_date": "2025-11-22",
+  "start_time": "17:00",
+  "end_time": null,
+  "status": "Da Fare",
+  "payment_status": "Da Pagare",
+  "notes": "Da preparare preventivo ",
+  "price": 0.00
+}, {
+  "id": 97,
+  "name": "Torta ",
+  "cleaning_date": "2025-11-20",
+  "start_time": "12:00",
+  "end_time": null,
+  "status": "Da Fare",
+  "payment_status": "Da Pagare",
+  "notes": "3 kg, Pan di spagna cioccolato con crema al cioccolato bianco, analcolica, rivestita di panna decorata con panna sfumata rosa e viola, aggiunta aggetti principesse in cartone",
+  "price": 80.00
+}, {
+  "id": 93,
+  "name": "Torta ",
+  "cleaning_date": "2025-11-08",
+  "start_time": "16:00",
+  "end_time": null,
+  "status": "Da Fare",
+  "payment_status": "Da Pagare",
+  "notes": "Pasta sfoglia, crema nocciola, panna, ganache fondente, scritta...15 anni di lo faccio dopo.... Colore cioccolato, decorazioni con Macarons, 3 kg, rettangolare ",
+  "price": 80.00
+}, {
+  "id": 92,
+  "name": "Torta 2 kg",
+  "cleaning_date": "2025-11-05",
+  "start_time": "17:00",
+  "end_time": null,
+  "status": "Da Fare",
+  "payment_status": "Pagato",
+  "notes": "Pan di spagna, chantilly con scaglie cioccolato fondente, rivestita panna con scritta nera, 15 anni di ...ahhh??? Nn ho sentito ",
+  "price": 55.00
+}, {
+  "id": 96,
+  "name": "Torta, biscotti vegani, biscotti  frolla ",
+  "cleaning_date": "2025-11-10",
+  "start_time": "10:00",
+  "end_time": null,
+  "status": "Da Fare",
+  "payment_status": "Da Pagare",
+  "notes": "Torta sfoglia da 1, 5 kg, chantilly con gocce cioccolato, rivestita panna bianca con scritta Francesca colore Lilla \n1 kg biscotti frolla marmellata e cioccolato \n500 gr biscotti frolla vegani ",
+  "price": 86.00
+}]

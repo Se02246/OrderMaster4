@@ -102,25 +102,25 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             <div className="flex justify-around">
               <button
                 onClick={() => handleChangeTheme("#3b82f6")} // Blu
-                // CORREZIONE: Torniamo a usare le classi di Tailwind
+                // Queste classi ora funzioneranno
                 className="w-8 h-8 rounded-full bg-blue-500 border-2 border-white shadow hover:ring-2 hover:ring-blue-300 focus:outline-none"
                 aria-label="Tema Blu"
               />
               <button
                 onClick={() => handleChangeTheme("#ef4444")} // Rosso
-                // CORREZIONE: Torniamo a usare le classi di Tailwind
+                // Queste classi ora funzioneranno
                 className="w-8 h-8 rounded-full bg-red-500 border-2 border-white shadow hover:ring-2 hover:ring-red-300 focus:outline-none"
                 aria-label="Tema Rosso"
               />
               <button
                 onClick={() => handleChangeTheme("#22c55e")} // Verde
-                // CORREZIONE: Torniamo a usare le classi di Tailwind
+                // Queste classi ora funzioneranno
                 className="w-8 h-8 rounded-full bg-green-500 border-2 border-white shadow hover:ring-2 hover:ring-green-300 focus:outline-none"
                 aria-label="Tema Verde"
               />
               <button
                 onClick={() => handleChangeTheme("#f97316")} // Arancione
-                // CORREZIONE: Torniamo a usare le classi di Tailwind
+                // Queste classi ora funzioneranno
                 className="w-8 h-8 rounded-full bg-orange-500 border-2 border-white shadow hover:ring-2 hover:ring-orange-300 focus:outline-none"
                 aria-label="Tema Arancione"
               />

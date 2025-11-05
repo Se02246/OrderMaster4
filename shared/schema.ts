@@ -1,15 +1,25 @@
-import { sql } from "drizzle-orm";
-import { pgTable, text, serial, integer, primaryKey, timestamp, varchar, numeric } from "drizzle-orm/pg-core";
+import { sql, relations } from "drizzle-orm"; // Assicurati che 'relations' sia importato
+import { 
+  pgTable, 
+  text, 
+  serial, 
+  integer, 
+  primaryKey, 
+  timestamp, 
+  varchar, 
+  numeric,
+  boolean // <-- IMPORTA BOOLEAN
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-import { relations } from "drizzle-orm";
 
-// --- Tabelle (Nessuna modifica) ---
+// --- Tabelle ---
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   email: varchar("email", { length: 255 }).notNull().unique(),
   hashed_password: text("hashed_password").notNull(),
 });
+
 export const apartments = pgTable("apartments", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
@@ -20,13 +30,16 @@ export const apartments = pgTable("apartments", {
   notes: text("notes"),
   price: numeric("price", { precision: 10, scale: 2 }),
   user_id: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  is_favorite: boolean("is_favorite").notNull().default(false), // <-- NUOVA COLONNA
 });
+
 export const employees = pgTable("employees", {
   id: serial("id").primaryKey(),
   first_name: varchar("first_name", { length: 100 }).notNull(),
   last_name: varchar("last_name", { length: 100 }).notNull(),
   user_id: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
 });
+
 export const assignments = pgTable("assignments", {
   id: serial("id").primaryKey(),
   apartment_id: integer("apartment_id").notNull().references(() => apartments.id, { onDelete: "cascade" }),
@@ -36,6 +49,7 @@ export const assignments = pgTable("assignments", {
     uniqueIdx: primaryKey({ columns: [table.apartment_id, table.employee_id] }),
   };
 });
+
 // --- Relazioni (Nessuna modifica) ---
 export const usersRelations = relations(users, ({ many }) => ({
   apartments: many(apartments),
@@ -84,37 +98,30 @@ export type InsertAssignment = z.infer<typeof insertAssignmentSchema>;
 
 // --- Schemi Estesi (MODIFICATO) ---
 export const apartmentWithEmployeesSchema = z.object({
-  ...insertApartmentSchema.shape, // price qui è z.string().optional().nullable()
+  ...insertApartmentSchema.shape,
   
-  // === INIZIO MODIFICA ===
-  // Sovrascriviamo 'price' per gestire correttamente la trasformazione
   price: z.preprocess(
     (val) => {
-      // Se è una stringa vuota, null o undefined, trasformalo in 'null'
       if (val === "" || val === null || val === undefined) {
         return null;
       }
-      // Altrimenti, prova a convertirlo in numero
       const num = Number(val);
-      // Se non è un numero (es. "abc"), restituisce il valore originale
-      // così la validazione di z.number() fallirà come previsto.
-      // Se è un numero, restituisci il numero.
       return isNaN(num) ? val : num;
     },
-    // Ora valida che sia un numero, o nullo.
     z.number({
       invalid_type_error: "Il prezzo deve essere un numero valido.",
     })
     .min(0, { message: "Il prezzo non può essere negativo." })
-    .nullable() // Permetti 'null'
-    .optional() // Permetti 'undefined'
+    .nullable()
+    .optional()
   ),
-  // === FINE MODIFICA ===
   
   employee_ids: z.array(
     z.number({ invalid_type_error: "ID cliente deve essere un numero." })
      .min(1, "ID cliente non valido.")
   ).optional(),
+
+  is_favorite: z.boolean().optional(), // <-- AGGIUNTO PER VALIDAZIONE
 });
 
 export type ApartmentWithEmployees = z.infer<typeof apartmentWithEmployeesSchema>;

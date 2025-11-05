@@ -112,7 +112,7 @@ export function ApartmentModal({
     }
   }, [isOpen, apartment, form]);
 
-  // La mutazione (corretta dalla scorsa volta)
+  // La mutazione
   const mutation = useMutation({
     mutationFn: ({ values, mode, id }: MutationVariables) => {
       if (mode === "edit") {
@@ -170,10 +170,8 @@ export function ApartmentModal({
     },
   });
 
-  // === INIZIO CORREZIONE DEFINITIVA ===
   // Avvolgiamo 'onSubmit' in 'React.useCallback'
-  // Questo assicura che la funzione 'onSubmit' abbia sempre accesso
-  // alle props 'mode' e 'apartment' più aggiornate.
+  // per assicurare che 'mode' e 'apartment' siano sempre aggiornati
   const onSubmit = React.useCallback(
     (values: FormValues) => {
       mutation.mutate({
@@ -182,9 +180,8 @@ export function ApartmentModal({
         id: apartment?.id, // Usa la prop 'apartment' corrente
       });
     },
-    [mode, apartment, mutation] // Dipendenze: ricrea la funzione se queste cambiano
+    [mode, apartment, mutation] // Dipendenze
   );
-  // === FINE CORREZIONE DEFINITIVA ===
 
   const onEmployeeCreated = () => {
     queryClient.invalidateQueries({ queryKey: ["/api/employees"] });
@@ -203,7 +200,7 @@ export function ApartmentModal({
           <Form {...form}>
             {/* Il form inizia qui */}
             <form
-              onSubmit={form.handleSubmit(onSubmit)} // 'form.handleSubmit' ora riceverà sempre la funzione 'onSubmit' aggiornata
+              onSubmit={form.handleSubmit(onSubmit)}
               className="space-y-4 overflow-y-auto px-1"
             >
               {/* Sezione Dati Principali */}
@@ -329,7 +326,8 @@ export function ApartmentModal({
                         <SelectContent>
                           <SelectItem value="Da Fare">Da Fare</SelectItem>
                           <SelectItem value="In Corso">In Corso</SelectItem>
-                          <SelectItem value="Fatto">Fatto</S-electItem>
+                          {/* === QUI C'ERA IL TYPO: S-electItem === */}
+                          <SelectItem value="Fatto">Fatto</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />

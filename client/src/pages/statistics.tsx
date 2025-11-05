@@ -1,374 +1,206 @@
-// === INIZIO MODIFICA ===
-import { useState } from "react";
+import { useState, useEffect } from "react"; // Importa useEffect
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Pie, PieChart, Cell } from "recharts";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ClipboardList, Trophy, CalendarClock, Zap } from "lucide-react";
-import { formatDateForDisplay } from "@/lib/date-utils";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-import {
-  ChartConfig,
-  ChartContainer,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
-import { format, parse } from "date-fns";
-import { it } from "date-fns/locale";
-// Nuovi import per i selettori
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { hc } from "hono/client";
+import { AppRoutes } from "@server/routes"; // Assicurati che il tipo sia corretto
+import { Skeleton } from "@/components/ui/skeleton";
+
+// === INIZIO MODIFICA 2: Importa Input e Button ===
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-// === FINE MODIFICA ===
+import { Button } from "@/components/ui/button";
+// === FINE MODIFICA 2 ===
 
+const client = hc<AppRoutes>("/");
 
-// Definisco i nuovi tipi per i dati
-type TopEmployee = {
+// Tipi (potrebbero essere in un file separato)
+type AnnualStats = {
+  month: string;
+  total: number;
+}[];
+
+type EmployeeStats = {
   name: string;
-  count: number;
-};
+  value: number;
+}[];
 
-type ProductiveDay = {
-  date: string;
-  count: number;
-};
+// Colori per il grafico a torta
+const PIE_COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8", "#82ca9d"];
 
-type OrdersByTime = {
-  day?: string; // "YYYY-MM-DD"
-  month?: string; // "YYYY-MM"
-  count: number;
-};
-
-type MostProductiveMonth = {
-  month: string; // "YYYY-MM"
-  count: number;
-};
-
-type StatisticsData = {
-  totalOrders: number;
-  topEmployees: TopEmployee[];
-  busiestDays: ProductiveDay[];
-  ordersPerDayInMonth: OrdersByTime[];
-  ordersPerMonthInYear: OrdersByTime[];
-  mostProductiveMonth: MostProductiveMonth;
-};
-
-// Configurazione per i grafici
-const chartConfig = {
-  ordini: {
-    label: "Ordini",
-    color: "hsl(var(--primary))", // Usa il colore primario
-  },
-} satisfies ChartConfig;
-
-// Formatta il mese "YYYY-MM" in "MMM" (es. "Gen")
-const formatMonthAbbr = (dateStr: string) => {
-  try {
-    const date = parse(dateStr, "yyyy-MM", new Date());
-    return format(date, "MMM", { locale: it });
-  } catch (e) {
-    return dateStr;
-  }
-};
-
-// Formatta il giorno "YYYY-MM-DD" in "dd" (es. "01")
-const formatDay = (dateStr: string) => {
-  try {
-    const date = parse(dateStr, "yyyy-MM-dd", new Date());
-    return format(date, "dd");
-  } catch (e) {
-    return dateStr;
-  }
-};
-
-// Formatta il mese "YYYY-MM" in "Mese Anno" (es. "Novembre 2023")
-const formatMonthYear = (dateStr: string) => {
-  try {
-    const date = parse(dateStr, "yyyy-MM", new Date());
-    return format(date, "MMMM yyyy", { locale: it });
-  } catch (e) {
-    return dateStr;
-  }
-};
-
+// Componente per il caricamento
+const ChartSkeleton = () => <Skeleton className="h-[350px] w-full" />;
 
 export default function Statistics() {
-  // === INIZIO MODIFICA ===
-  // Stato per i selettori di data
-  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), "yyyy-MM"));
+  // === INIZIO MODIFICA 2: Logica per "qualsiasi anno" ===
+  const currentYear = new Date().getFullYear();
+  // 'selectedYear' è l'anno attualmente visualizzato nei grafici
+  const [selectedYear, setSelectedYear] = useState(currentYear);
+  // 'inputYear' è il valore nel campo di testo, gestito come stringa
+  const [inputYear, setInputYear] = useState(selectedYear.toString());
 
-  // Genera lista di anni per il dropdown (es. 5 anni indietro)
-  const availableYears = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
+  // Rimuoviamo la lista fissa di 5 anni
+  // const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
-  // Aggiorna la query per includere gli stati
-  const { data: stats, isLoading, isError } = useQuery<StatisticsData>({
-    queryKey: [`/api/statistics?year=${selectedYear}&monthYear=${selectedMonth}`],
+  // Funzione chiamata quando si preme "Visualizza"
+  const handleYearSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const yearNum = parseInt(inputYear, 10);
+    // Aggiorna solo se è un numero valido (es. tra 1900 e 3000)
+    if (!isNaN(yearNum) && yearNum > 1900 && yearNum < 3000) {
+      setSelectedYear(yearNum);
+    } else {
+      // Se l'input non è valido, resettalo al valore precedente
+      setInputYear(selectedYear.toString());
+    }
+  };
+
+  // Se selectedYear cambia (es. al primo caricamento), aggiorna l'input
+  useEffect(() => {
+    setInputYear(selectedYear.toString());
+  }, [selectedYear]);
+  // === FINE MODIFICA 2 ===
+
+  // Query per l'andamento annuale
+  const annualStatsQuery = useQuery({
+    queryKey: ["annualStats", selectedYear],
+    queryFn: async () => {
+      const res = await client.api.stats.annual.$get({
+        query: { year: selectedYear.toString() },
+      });
+      if (!res.ok) {
+        throw new Error("Impossibile caricare le statistiche annuali");
+      }
+      return res.json();
+    },
   });
-  // === FINE MODIFICA ===
 
-  if (isLoading) {
-    return (
-      <div className="text-center py-8">
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        <p className="mt-2 text-gray-600">Caricamento statistiche...</p>
-      </div>
-    );
-  }
+  // Query per le statistiche degli impiegati (primi 5)
+  const employeeStatsQuery = useQuery({
+    queryKey: ["employeeStats"],
+    queryFn: async () => {
+      const res = await client.api.stats.employees.$get();
+      if (!res.ok) {
+        throw new Error("Impossibile caricare le statistiche degli impiegati");
+      }
+      return res.json();
+    },
+  });
 
-  if (isError || !stats) {
-    return (
-      <div className="text-center py-8 bg-white rounded-lg shadow">
-        <i className="fas fa-exclamation-triangle text-red-500 text-5xl mb-4"></i>
-        <h3 className="text-xl font-medium text-gray-700 mb-2">Errore</h3>
-        <p className="text-gray-500">Impossibile caricare le statistiche.</p>
-      </div>
-    );
-  }
+  // Dati formattati per i grafici
+  const annualData = annualStatsQuery.data ?? [];
+  const employeeData = employeeStatsQuery.data ?? [];
 
-  // Prepara i dati per i grafici
-  const dayData = stats.ordersPerDayInMonth.map(d => ({
-    day: formatDay(d.day!), // 'day' è sicuramente presente qui
-    ordini: d.count,
-  }));
-
-  const monthData = stats.ordersPerMonthInYear.map(m => ({
-    month: formatMonthAbbr(m.month!), // 'month' è sicuramente presente qui
-    ordini: m.count,
-  }));
+  const chartConfig = {
+    total: {
+      label: "Totale (CHF)",
+      color: "hsl(var(--primary))",
+    },
+  };
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-semibold text-dark">Statistiche</h2>
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+      <Card className="lg:col-span-4">
+        <CardHeader>
+          <CardTitle>Andamento Annuale (Ordini completati)</CardTitle>
+          <CardDescription>
+            Mostra gli ordini completati mese per mese nell'anno selezionato.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {/* === INIZIO MODIFICA 2: Sostituisci Select con Input e Button === */}
+          <form onSubmit={handleYearSubmit} className="flex justify-end mb-4 space-x-2">
+            <Input
+              type="number"
+              value={inputYear}
+              onChange={(e) => setInputYear(e.target.value)}
+              placeholder="Inserisci anno"
+              className="w-[160px] md:w-[180px]"
+              aria-label="Anno"
+            />
+            <Button type="submit">Visualizza</Button>
+          </form>
+          {/* === FINE MODIFICA 2 === */}
 
-      {/* Griglia Metriche */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Ordini Totali */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ordini Totali</CardTitle>
-            <ClipboardList className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalOrders}</div>
-            <p className="text-xs text-muted-foreground">Totale ordini registrati</p>
-          </CardContent>
-        </Card>
-        
-        {/* Mese Più Produttivo (Ora basato sull'anno selezionato) */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Mese Produttivo ({selectedYear})</CardTitle>
-            <Zap className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {stats.mostProductiveMonth.count > 0 ? (
-              <>
-                <div className="text-2xl font-bold">{stats.mostProductiveMonth.count} ordini</div>
-                <p className="text-xs text-muted-foreground">
-                  in {formatMonthYear(stats.mostProductiveMonth.month)}
-                </p>
-              </>
-            ) : (
-               <p className="text-sm text-muted-foreground">Nessun dato per il {selectedYear}.</p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Top 3 Clienti */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium flex items-center gap-2">
-              <Trophy className="h-5 w-5 text-yellow-500" />
-              Top 3 Clienti
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {stats.topEmployees.length > 0 ? (
-              <ol className="list-decimal list-inside space-y-2">
-                {stats.topEmployees.map((employee, index) => (
-                  <li key={index} className="text-sm">
-                    <span className="font-medium">{employee.name || "Cliente non definito"}</span>
-                    <span className="text-muted-foreground"> ({employee.count} {employee.count === 1 ? 'ordine' : 'ordini'})</span>
-                  </li>
-                ))}
-              </ol>
-            ) : (
-              <p className="text-sm text-muted-foreground">Nessun dato disponibile.</p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Top 3 Giorni Produttivi */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium flex items-center gap-2">
-              <CalendarClock className="h-5 w-5 text-blue-500" />
-              Top 3 Giorni
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {stats.busiestDays.length > 0 ? (
-              <ol className="list-decimal list-inside space-y-2">
-                {stats.busiestDays.map((day, index) => (
-                  <li key={index} className="text-sm">
-                    <span className="font-medium">{formatDateForDisplay(day.date)}</span>
-                    <span className="text-muted-foreground"> ({day.count} {day.count === 1 ? 'ordine' : 'ordini'})</span>
-                  </li>
-                ))}
-              </ol>
-            ) : (
-               <p className="text-sm text-muted-foreground">Nessun dato disponibile.</p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Griglia per i grafici */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        {/* Grafico Ordini per Giorno */}
-        <Card>
-          {/* === INIZIO MODIFICA === */}
-          <CardHeader>
-            <CardTitle>Ordini per Giorno ({formatMonthYear(selectedMonth)})</CardTitle>
-             <div className="w-full max-w-sm pt-2">
-              <Label htmlFor="month-picker" className="text-sm font-medium">Seleziona Mese</Label>
-              <Input
-                id="month-picker"
-                type="month"
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className="mt-1"
-              />
-            </div>
-          </CardHeader>
-          {/* === FINE MODIFICA === */}
-          <CardContent>
-            <ChartContainer config={chartConfig} className="h-[250px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart
-                  data={dayData}
-                  margin={{
-                    top: 5,
-                    right: 10,
-                    left: -20, 
-                    bottom: 5,
-                  }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis
-                    dataKey="day"
-                    tickLine={false}
-                    axisLine={false}
-                    tickMargin={8}
-                    padding={{ left: 20, right: 20 }}
-                  />
-                  <YAxis
-                    domain={[3, 'auto']} // Minimo 3
-                    allowDecimals={false}
-                    tickLine={false}
-                    axisLine={false}
-                    tickMargin={8}
-                  />
-                  <Tooltip
-                    cursor={false}
-                    content={<ChartTooltipContent indicator="line" />}
-                  />
-                  <Line
-                    dataKey="ordini"
-                    type="monotone"
-                    stroke="var(--color-ordini)"
-                    strokeWidth={2}
-                    dot={false}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+          {annualStatsQuery.isLoading ? (
+            <ChartSkeleton />
+          ) : annualStatsQuery.isError ? (
+            <div className="text-red-500">Errore nel caricamento dei dati.</div>
+          ) : (
+            <ChartContainer config={chartConfig} className="h-[350px] w-full">
+              <BarChart data={annualData} accessibilityLayer>
+                <CartesianGrid vertical={false} />
+                <XAxis
+                  dataKey="month"
+                  tickLine={false}
+                  tickMargin={10}
+                  axisLine={false}
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={10}
+                  tickFormatter={(value) => `CHF ${value}`}
+                />
+                <ChartTooltip
+                  cursor={false}
+                  content={<ChartTooltipContent 
+                    formatter={(value) => `CHF ${Number(value).toFixed(2)}`} 
+                  />}
+                />
+                <ChartLegend content={<ChartLegendContent />} />
+                <Bar
+                  dataKey="total"
+                  fill="var(--color-total)"
+                  radius={4}
+                />
+              </BarChart>
             </ChartContainer>
-          </CardContent>
-        </Card>
+          )}
+        </CardContent>
+      </Card>
 
-        {/* Grafico Ordini per Mese */}
-        <Card>
-          {/* === INIZIO MODIFICA === */}
-          <CardHeader>
-            <CardTitle>Ordini per Mese ({selectedYear})</CardTitle>
-            <div className="w-full max-w-sm pt-2">
-              <Label htmlFor="year-picker" className="text-sm font-medium">Seleziona Anno</Label>
-              <Select
-                value={String(selectedYear)}
-                onValueChange={(value) => setSelectedYear(Number(value))}
-              >
-                <SelectTrigger id="year-picker" className="mt-1">
-                  <SelectValue placeholder="Seleziona un anno" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableYears.map(year => (
-                    <SelectItem key={year} value={String(year)}>
-                      {year}
-                    </SelectItem>
+      <Card className="lg:col-span-3">
+        <CardHeader>
+          <CardTitle>Impiegati Top 5</CardTitle>
+          <CardDescription>
+            Ordini completati dagli impiegati (ultimi 30 giorni).
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {employeeStatsQuery.isLoading ? (
+            <ChartSkeleton />
+          ) : employeeStatsQuery.isError ? (
+            <div className="text-red-500">Errore nel caricamento dei dati.</div>
+          ) : (
+            <ChartContainer config={{}} className="h-[350px] w-full">
+              <PieChart>
+                <ChartTooltip
+                  cursor={false}
+                  content={<ChartTooltipContent 
+                    formatter={(value, name) => `${name}: ${value} ordini`}
+                  />}
+                />
+                <Pie
+                  data={employeeData}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={120}
+                  fill="#8884d8"
+                  label={(entry) => `${entry.name} (${entry.value})`}
+                >
+                  {employeeData.map((_entry, index) => (
+                    <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                   ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </CardHeader>
-          {/* === FINE MODIFICA === */}
-          <CardContent>
-            <ChartContainer config={chartConfig} className="h-[250px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart
-                  data={monthData}
-                   margin={{
-                    top: 5,
-                    right: 10,
-                    left: -20,
-                    bottom: 5,
-                  }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis
-                    dataKey="month"
-                    tickLine={false}
-                    axisLine={false}
-                    tickMargin={8}
-                    padding={{ left: 20, right: 20 }}
-                  />
-                  <YAxis
-                    domain={[3, 'auto']} // Minimo 3
-                    allowDecimals={false}
-                    tickLine={false}
-                    axisLine={false}
-                    tickMargin={8}
-                  />
-                  <Tooltip
-                    cursor={false}
-                    content={<ChartTooltipContent indicator="line" />}
-                  />
-                  <Line
-                    dataKey="ordini"
-                    type="monotone"
-                    stroke="var(--color-ordini)"
-                    strokeWidth={2}
-                    dot={false}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+                </Pie>
+                <ChartLegend content={<ChartLegendContent />} />
+              </PieChart>
             </ChartContainer>
-          </CardContent>
-        </Card>
-
-      </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -5,16 +5,23 @@ import { Button } from "@/components/ui/button";
 import {
   Plus,
   Search,
-  Star, // <-- AGGIUNTO
-  ClipboardList, // <-- AGGIUNTO
-  CreditCard, // <-- AGGIUNTO
+  Star,
+  ClipboardList,
+  CreditCard,
+  // === ICONE PER NUOVA PILLOLA ===
+  Calendar,
+  Euro,
+  CaseSensitive, // Per A-Z
+  ArrowUp,
+  ArrowDown,
+  // === FINE ===
 } from "lucide-react";
 import ApartmentCard from "@/components/ui/data-display/ApartmentCard";
 import { ApartmentModal } from "@/components/ui/modals/ApartmentModal";
 import ConfirmDeleteModal from "@/components/ui/modals/ConfirmDeleteModal";
 import {
   ApartmentWithAssignedEmployees,
-  type Apartment, // <-- AGGIUNTO
+  type Apartment,
 } from "@shared/schema";
 import { ModalState } from "@/components/ui/modals/types";
 import { useToast } from "@/hooks/use-toast";
@@ -22,11 +29,20 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
-import { cn } from "@/lib/utils"; // <-- AGGIUNTO
+import { cn } from "@/lib/utils";
 
-// Definiamo i tipi per i filtri
-type OrderStatus = Apartment["status"]; // "Da Fare" | "In Corso" | "Fatto"
-type PaymentStatus = Apartment["payment_status"]; // "Da Pagare" | "Pagato"
+// Definizioni Tipi (invariate)
+type OrderStatus = Apartment["status"];
+type PaymentStatus = Apartment["payment_status"];
+
+// === TIPO PER ORDINAMENTO ===
+type SortMode =
+  | "date_asc"
+  | "date_desc"
+  | "price_asc"
+  | "price_desc"
+  | "name_asc"
+  | "name_desc";
 
 const safeFormatDate = (dateString: string | null | undefined) => {
   if (!dateString) return "";
@@ -47,10 +63,13 @@ export default function Home() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
 
-  // === STATI PER I FILTRI ===
+  // Stati per i filtri (invariati)
   const [favoriteFilter, setFavoriteFilter] = useState<boolean | null>(null);
   const [statusFilter, setStatusFilter] = useState<OrderStatus | null>(null);
   const [paymentFilter, setPaymentFilter] = useState<PaymentStatus | null>(null);
+
+  // === STATO PER ORDINAMENTO ===
+  const [sortMode, setSortMode] = useState<SortMode>("date_asc");
 
   const { data: apartments, isLoading, error } = useQuery<
     ApartmentWithAssignedEmployees[]
@@ -140,14 +159,11 @@ export default function Home() {
     }
   };
 
-  // === HANDLER PER I FILTRI ===
-
-  // Ciclo Preferiti: Grigio (null) -> Giallo (true) -> Grigio (null)
+  // Handler filtri (invariati)
   const handleFavoriteFilterChange = () => {
     setFavoriteFilter((prev) => (prev === null ? true : null));
   };
 
-  // Ciclo Stato: Grigio (null) -> Rosso (Da Fare) -> Blu (In Corso) -> Verde (Fatto) -> Grigio (null)
   const handleStatusFilterChange = () => {
     setStatusFilter((prev) => {
       if (prev === null) return "Da Fare";
@@ -158,7 +174,6 @@ export default function Home() {
     });
   };
 
-  // Ciclo Pagamento: Grigio (null) -> Rosso (Da Pagare) -> Verde (Pagato) -> Grigio (null)
   const handlePaymentFilterChange = () => {
     setPaymentFilter((prev) => {
       if (prev === null) return "Da Pagare";
@@ -168,11 +183,68 @@ export default function Home() {
     });
   };
 
-  // === LOGICA DI FILTRAGGIO E ORDINAMENTO MODIFICATA ===
+  // === HANDLER PER ORDINAMENTO ===
+  const handleSortChange = () => {
+    setSortMode((prev) => {
+      switch (prev) {
+        case "date_asc":
+          return "date_desc";
+        case "date_desc":
+          return "price_asc";
+        case "price_asc":
+          return "price_desc";
+        case "price_desc":
+          return "name_asc";
+        case "name_asc":
+          return "name_desc";
+        case "name_desc":
+          return "date_asc";
+        default:
+          return "date_asc";
+      }
+    });
+  };
+
+  // === FUNZIONE RENDER PER PILLOLA ORDINAMENTO ===
+  const renderSortButtonContent = () => {
+    const [key, direction] = sortMode.split("_") as [
+      "date" | "price" | "name",
+      "asc" | "desc",
+    ];
+
+    const iconProps = { size: 16, className: "flex-shrink-0" };
+    const arrow =
+      direction === "asc" ? (
+        <ArrowUp {...iconProps} />
+      ) : (
+        <ArrowDown {...iconProps} />
+      );
+
+    let icon;
+
+    if (key === "date") {
+      icon = <Calendar {...iconProps} />;
+    } else if (key === "price") {
+      icon = <Euro {...iconProps} />;
+    } else {
+      // 'name'
+      icon = <CaseSensitive {...iconProps} />;
+    }
+
+    return (
+      <>
+        {icon}
+        {arrow}
+      </>
+    );
+  };
+  // === FINE ===
+
+  // === LOGICA FILTRI E ORDINAMENTO ===
   const processedAppointments = useMemo(() => {
     const search = searchTerm.toLowerCase();
 
-    // 1. Filtra per la barra di ricerca (come prima)
+    // 1. Filtra per ricerca (invariato)
     const filteredBySearch = (apartments || []).filter((apartment) => {
       if (!search) return true;
       const cleaningDate = safeFormatDate(apartment.cleaning_date);
@@ -191,9 +263,8 @@ export default function Home() {
       );
     });
 
-    // 2. Applica i filtri a pillola (combinandoli)
+    // 2. Filtra per pillole (invariato)
     const filteredByAll = filteredBySearch.filter((apartment) => {
-      // Se un filtro è attivo (non null) e l'appartamento non corrisponde, escludilo
       if (
         favoriteFilter !== null &&
         apartment.is_favorite !== favoriteFilter
@@ -206,37 +277,69 @@ export default function Home() {
       if (paymentFilter !== null && apartment.payment_status !== paymentFilter) {
         return false;
       }
-      // Se passa tutti i filtri, includilo
       return true;
     });
 
-    // 3. Ordina (logica invariata)
-    return filteredByAll.sort((a, b) => {
-      try {
-        const dateA = new Date(
-          a.cleaning_date + "T" + (a.start_time || "00:00")
-        ).getTime();
-        const dateB = new Date(
-          b.cleaning_date + "T" + (b.start_time || "00:00")
-        ).getTime();
-
-        if (dateA === dateB) {
-          return a.id - b.id; // Ordinamento stabile
-        }
-
-        if (isNaN(dateA)) return 1;
-        if (isNaN(dateB)) return -1;
-        return dateA - dateB; // Ordine cronologico
-      } catch (e) {
-        return 0;
+    // 3. Ordina (invariato)
+    const sorted = filteredByAll.sort((a, b) => {
+      switch (sortMode) {
+        case "date_asc":
+          try {
+            const dateA = new Date(
+              a.cleaning_date + "T" + (a.start_time || "00:00")
+            ).getTime();
+            const dateB = new Date(
+              b.cleaning_date + "T" + (b.start_time || "00:00")
+            ).getTime();
+            if (dateA === dateB) return a.id - b.id;
+            if (isNaN(dateA)) return 1;
+            if (isNaN(dateB)) return -1;
+            return dateA - dateB;
+          } catch (e) {
+            return 0;
+          }
+        case "date_desc":
+          try {
+            const dateA = new Date(
+              a.cleaning_date + "T" + (a.start_time || "00:00")
+            ).getTime();
+            const dateB = new Date(
+              b.cleaning_date + "T" + (b.start_time || "00:00")
+            ).getTime();
+            if (dateA === dateB) return a.id - b.id;
+            if (isNaN(dateA)) return 1;
+            if (isNaN(dateB)) return -1;
+            return dateB - dateA;
+          } catch (e) {
+            return 0;
+          }
+        case "price_asc":
+          const priceA = a.price ? Number(a.price) : Infinity;
+          const priceB = b.price ? Number(b.price) : Infinity;
+          if (priceA === priceB) return a.id - b.id;
+          return priceA - priceB;
+        case "price_desc":
+          const priceADesc = a.price ? Number(a.price) : -Infinity;
+          const priceBDesc = b.price ? Number(b.price) : -Infinity;
+          if (priceADesc === priceBDesc) return a.id - b.id;
+          return priceBDesc - priceADesc;
+        case "name_asc":
+          return a.name.localeCompare(b.name);
+        case "name_desc":
+          return b.name.localeCompare(a.name);
+        default:
+          return 0;
       }
     });
+
+    return sorted;
   }, [
     apartments,
     searchTerm,
     favoriteFilter,
     statusFilter,
-    paymentFilter, // Aggiunti i filtri alle dipendenze
+    paymentFilter,
+    sortMode,
   ]);
 
   // Skeleton e gestione errore (invariati)
@@ -281,9 +384,9 @@ export default function Home() {
           </div>
         </div>
 
-        {/* === PILLOLE DI FILTRO (AGGIUNTE) === */}
+        {/* === PILLOLE DI FILTRO E ORDINAMENTO === */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* Filtro Preferiti */}
+          {/* Filtro Preferiti (invariato) */}
           <Button
             variant="outline"
             size="sm"
@@ -307,7 +410,7 @@ export default function Home() {
             Preferiti
           </Button>
 
-          {/* Filtro Stato Ordine */}
+          {/* Filtro Stato Ordine (invariato) */}
           <Button
             variant="outline"
             size="sm"
@@ -327,14 +430,14 @@ export default function Home() {
             {statusFilter || "Stato Ordine"}
           </Button>
 
-          {/* Filtro Pagamento */}
+          {/* Filtro Pagamento (invariato) */}
           <Button
             variant="outline"
             size="sm"
             className={cn(
               "gap-2 transition-all",
               paymentFilter === null && "text-muted-foreground",
-              paymentFilter === "Da Pagare" && // Rosso come da richiesta
+              paymentFilter === "Da Pagare" &&
                 "border-red-300 bg-red-100 text-red-800 hover:bg-red-200",
               paymentFilter === "Pagato" &&
                 "border-green-300 bg-green-100 text-green-800 hover:bg-green-200"
@@ -344,10 +447,21 @@ export default function Home() {
             <CreditCard size={16} />
             {paymentFilter || "Pagamento"}
           </Button>
+
+          {/* === NUOVA PILLOLA ORDINAMENTO === */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 text-muted-foreground" // Aspetto neutro
+            onClick={handleSortChange}
+            aria-label={`Ordina per ${sortMode.replace("_", " ")}`}
+          >
+            {renderSortButtonContent()}
+          </Button>
         </div>
         {/* === FINE PILLOLE === */}
 
-        {/* Griglia Card (logica invariata, ora usa 'processedAppointments' aggiornato) */}
+        {/* Griglia Card (invariata) */}
         {processedAppointments && processedAppointments.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {processedAppointments.map((apartment) => (
@@ -374,7 +488,10 @@ export default function Home() {
           </div>
         ) : (
           <div className="text-center text-gray-500 py-10">
-            {searchTerm || favoriteFilter || statusFilter || paymentFilter
+            {searchTerm ||
+            favoriteFilter ||
+            statusFilter ||
+            paymentFilter
               ? "Nessun ordine trovato per questi filtri."
               : "Non ci sono ordini da mostrare."}
           </div>

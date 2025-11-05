@@ -102,30 +102,26 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             <div className="flex justify-around">
               <button
                 onClick={() => handleChangeTheme("#3b82f6")} // Blu
-                // CORREZIONE: Usiamo 'style' invece delle classi 'bg-*' per evitare il purge di Tailwind
-                style={{ backgroundColor: "#3b82f6" }}
-                className="w-8 h-8 rounded-full border-2 border-white shadow hover:ring-2 hover:ring-blue-300 focus:outline-none"
+                // CORREZIONE: Torniamo a usare le classi di Tailwind
+                className="w-8 h-8 rounded-full bg-blue-500 border-2 border-white shadow hover:ring-2 hover:ring-blue-300 focus:outline-none"
                 aria-label="Tema Blu"
               />
               <button
                 onClick={() => handleChangeTheme("#ef4444")} // Rosso
-                // CORREZIONE: Usiamo 'style' invece delle classi 'bg-*'
-                style={{ backgroundColor: "#ef4444" }}
-                className="w-8 h-8 rounded-full border-2 border-white shadow hover:ring-2 hover:ring-red-300 focus:outline-none"
+                // CORREZIONE: Torniamo a usare le classi di Tailwind
+                className="w-8 h-8 rounded-full bg-red-500 border-2 border-white shadow hover:ring-2 hover:ring-red-300 focus:outline-none"
                 aria-label="Tema Rosso"
               />
               <button
                 onClick={() => handleChangeTheme("#22c55e")} // Verde
-                // CORREZIONE: Usiamo 'style' invece delle classi 'bg-*'
-                style={{ backgroundColor: "#22c55e" }}
-                className="w-8 h-8 rounded-full border-2 border-white shadow hover:ring-2 hover:ring-green-300 focus:outline-none"
+                // CORREZIONE: Torniamo a usare le classi di Tailwind
+                className="w-8 h-8 rounded-full bg-green-500 border-2 border-white shadow hover:ring-2 hover:ring-green-300 focus:outline-none"
                 aria-label="Tema Verde"
               />
               <button
                 onClick={() => handleChangeTheme("#f97316")} // Arancione
-                // CORREZIONE: Usiamo 'style' invece delle classi 'bg-*'
-                style={{ backgroundColor: "#f97316" }}
-                className="w-8 h-8 rounded-full border-2 border-white shadow hover:ring-2 hover:ring-orange-300 focus:outline-none"
+                // CORREZIONE: Torniamo a usare le classi di Tailwind
+                className="w-8 h-8 rounded-full bg-orange-500 border-2 border-white shadow hover:ring-2 hover:ring-orange-300 focus:outline-none"
                 aria-label="Tema Arancione"
               />
             </div>

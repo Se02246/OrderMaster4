@@ -123,8 +123,8 @@ export default function Home() {
     });
 
     // === MODIFICA ===
-    // Ordina solo per data.
-    // Ho rimosso le due righe che controllavano 'is_favorite'.
+    // Ordina solo per data e ora.
+    // Tutta la logica 'is_favorite' è stata rimossa.
     return filtered.sort((a, b) => {
       try {
         const dateA = new Date(
@@ -133,6 +133,12 @@ export default function Home() {
         const dateB = new Date(
           b.cleaning_date + "T" + (b.start_time || "00:00")
         ).getTime();
+        
+        // Se le date/ore sono identiche, mantieni l'ordine (o ordina per ID)
+        if (dateA === dateB) {
+            return a.id - b.id; // Ordinamento stabile
+        }
+        
         if (isNaN(dateA)) return 1;
         if (isNaN(dateB)) return -1;
         return dateA - dateB; // Ordine cronologico

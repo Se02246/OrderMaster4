@@ -1,13 +1,8 @@
-// === INIZIO MODIFICA ===
-// 'useMemo' è già importato, ho cambiato PlusCircle con Plus per un look più pulito
 import { useState, useMemo } from "react";
-// === FINE MODIFICA ===
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"; // <-- IMPORTATI
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
-// === INIZIO MODIFICA ===
-import { Plus, Search } from "lucide-react"; // Cambiato PlusCircle in Plus
-// === FINE MODIFICA ===
+import { Plus, Search } from "lucide-react";
 import ApartmentCard from "@/components/ui/data-display/ApartmentCard";
 import { ApartmentModal } from "@/components/ui/modals/ApartmentModal";
 import ConfirmDeleteModal from "@/components/ui/modals/ConfirmDeleteModal";
@@ -19,19 +14,17 @@ import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 
-// ... (la funzione safeFormatDate rimane invariata) ...
 const safeFormatDate = (dateString: string | null | undefined) => {
   if (!dateString) return "";
   try {
     const date = new Date(dateString);
-    // Controlla se la data è valida
     if (isNaN(date.getTime())) {
-      return ""; // Restituisci stringa vuota se non valida
+      return "";
     }
     return format(date, "P p", { locale: it });
   } catch (e) {
     console.error("Errore formattazione data:", e);
-    return ""; // Restituisci stringa vuota in caso di errore
+    return "";
   }
 };
 
@@ -46,7 +39,7 @@ export default function Home() {
 
   const [modalState, setModalState] = useState<ModalState>({ type: null, data: null });
 
-  // ... (mutation, handleDelete, confirmDelete, processedAppointments rimangono invariati) ...
+  // Mutazione per l'eliminazione (invariata)
   const mutation = useMutation({
     mutationFn: async (apartmentId: number) => {
       await apiRequest("DELETE", `/api/apartments/${apartmentId}`);
@@ -71,6 +64,37 @@ export default function Home() {
     },
   });
 
+  // === NUOVA MUTAZIONE PER I PREFERITI ===
+  const toggleFavoriteMutation = useMutation({
+    mutationFn: async (apartmentId: number) => {
+      return apiRequest("PATCH", `/api/apartments/${apartmentId}/toggle-favorite`);
+    },
+    onSuccess: (updatedApartment: { id: number; is_favorite: boolean }) => {
+      // Aggiorna i dati in cache senza ricaricare la pagina
+      queryClient.setQueryData(
+        ["/api/apartments"],
+        (oldData: ApartmentWithAssignedEmployees[] | undefined) => {
+          if (!oldData) return oldData;
+          return oldData.map((apartment) =>
+            apartment.id === updatedApartment.id
+              ? { ...apartment, is_favorite: updatedApartment.is_favorite }
+              : apartment
+          );
+        }
+      );
+    },
+    onError: (error) => {
+      toast({
+        title: "Errore",
+        description: error.message || "Impossibile aggiornare il preferito.",
+        variant: "destructive",
+      });
+      // Ricarica i dati in caso di errore
+      queryClient.invalidateQueries({ queryKey: ["/api/apartments"] });
+    },
+  });
+  // === FINE NUOVA MUTAZIONE ===
+
   const handleDelete = (apartment: ApartmentWithAssignedEmployees) => {
     setModalState({ type: "delete", data: apartment });
   };
@@ -81,42 +105,53 @@ export default function Home() {
     }
   };
 
+  // Logica di ordinamento e filtro (invariata, ma ho corretto un bug)
   const processedAppointments = useMemo(() => {
-    // Ordina creando una copia
-    const sorted = (apartments || [])
-      .slice() 
-      .sort((a, b) => new Date(a.checkIn).getTime() - new Date(b.checkIn).getTime());
-
     const search = searchTerm.toLowerCase();
-    // Se la ricerca è vuota, restituisci direttamente l'array ordinato
-    if (!search) return sorted; 
-
-    // Altrimenti, filtra l'array ordinato
-    return sorted.filter((apartment) => {
+    
+    const filtered = (apartments || []).filter((apartment) => {
+      if (!search) return true; // Se la ricerca è vuota, includi tutto
       
       // Usa la funzione sicura per le date
-      const checkInDate = safeFormatDate(apartment.checkIn);
-      const checkOutDate = safeFormatDate(apartment.checkOut);
+      const cleaningDate = safeFormatDate(apartment.cleaning_date);
 
       const fieldsToSearch = [
         apartment.name,
-        apartment.address,
-        apartment.customerName,
-        apartment.customerPhone,
-        apartment.notes,
-        apartment.price?.toString(), 
         apartment.status,
-        checkInDate,
-        checkOutDate,
+        apartment.payment_status,
+        apartment.notes,
+        apartment.price?.toString(),
+        cleaningDate,
+        apartment.start_time,
+        ...apartment.employees.map(e => `${e.first_name} ${e.last_name}`)
       ];
 
       return fieldsToSearch.some((field) =>
         field ? field.toLowerCase().includes(search) : false
       );
     });
-  }, [apartments, searchTerm]);
 
-  // ... (isLoading, error rimangono invariati) ...
+    // Ordina: preferiti in alto, poi per data
+    return filtered.sort((a, b) => {
+      // Regola 1: I preferiti (is_favorite = true) vengono prima
+      if (a.is_favorite && !b.is_favorite) return -1;
+      if (!a.is_favorite && b.is_favorite) return 1;
+
+      // Regola 2: Se entrambi (o nessuno) sono preferiti, ordina per data
+      try {
+        const dateA = new Date(a.cleaning_date + "T" + (a.start_time || "00:00")).getTime();
+        const dateB = new Date(b.cleaning_date + "T" + (b.start_time || "00:00")).getTime();
+        if (isNaN(dateA)) return 1; // Metti le date non valide in fondo
+        if (isNaN(dateB)) return -1;
+        return dateA - dateB; // Ordine cronologico
+      } catch (e) {
+        return 0;
+      }
+    });
+
+  }, [apartments, searchTerm]);
+  
+  // Skeleton e gestione errore (invariati)
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -135,15 +170,10 @@ export default function Home() {
     return <div className="text-red-500 text-center">Errore nel caricamento degli appuntamenti: {error.message}</div>;
   }
 
-
-  // === INIZIO MODIFICA ===
-  // Ho aggiunto un React.Fragment (<>) per wrappare
-  // sia il contenuto principale che il nuovo bottone fluttuante.
   return (
     <>
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          
           <div className="relative w-full sm:max-w-xs">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -154,11 +184,8 @@ export default function Home() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-
-          {/* IL VECCHIO BOTTONE "Aggiungi Appuntamento" È STATO RIMOSSO DA QUI */}
         </div>
 
-        {/* Il resto del contenuto della pagina */}
         {processedAppointments && processedAppointments.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {processedAppointments.map((apartment) => (
@@ -167,6 +194,9 @@ export default function Home() {
                 apartment={apartment}
                 onEdit={() => setModalState({ type: "edit", data: apartment })}
                 onDelete={() => handleDelete(apartment)}
+                // === PASSAGGIO DELLA NUOVA FUNZIONE ===
+                onToggleFavorite={() => toggleFavoriteMutation.mutate(apartment.id)}
+                // === FINE ===
                 onStatusChange={() => queryClient.invalidateQueries({ queryKey: ["/api/apartments"] })}
                 onPaymentChange={() => queryClient.invalidateQueries({ queryKey: ["/api/apartments"] })}
               />
@@ -185,9 +215,7 @@ export default function Home() {
           isOpen={modalState.type === "add" || modalState.type === "edit"}
           onClose={() => setModalState({ type: null, data: null })}
           apartment={modalState.data}
-          // === CORREZIONE BUG MODALE (IDENTICA A CALENDAR.TSX) ===
           mode={modalState.type}
-          // === FINE CORREZIONE ===
         />
         <ConfirmDeleteModal
           isOpen={modalState.type === "delete"}
@@ -198,7 +226,7 @@ export default function Home() {
         />
       </div>
 
-      {/* NUOVO BOTTONE FLUTTUANTE */}
+      {/* Bottone fluttuante (invariato) */}
       <Button
         onClick={() => setModalState({ type: "add", data: null })}
         className="fixed z-40 right-6 bottom-6 h-14 w-14 rounded-full shadow-lg"
@@ -209,5 +237,4 @@ export default function Home() {
       </Button>
     </>
   );
-  // === FINE MODIFICA ===
 }

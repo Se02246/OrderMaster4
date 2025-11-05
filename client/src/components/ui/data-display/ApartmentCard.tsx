@@ -4,33 +4,31 @@ import { ApartmentWithAssignedEmployees } from "@shared/schema";
 import {
   Calendar,
   Clock,
-  Edit,
-  Trash2,
+  Trash2, // <-- Rimosso 'Edit'
   Euro,
-  Star, // <-- AGGIUNTO
+  Star,
 } from "lucide-react";
-import { cn } from "@/lib/utils"; // <-- AGGIUNTO
+import { cn } from "@/lib/utils";
 
 type ApartmentCardProps = {
   apartment: ApartmentWithAssignedEmployees;
-  onEdit: () => void; // Modificato per coerenza con home.tsx
-  onDelete: () => void; // Modificato per coerenza con home.tsx
-  onToggleFavorite: () => void; // <-- NUOVA PROP
-  onClick?: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  onToggleFavorite: () => void;
+  onClick?: () => void; // Questa prop non viene più usata per 'onEdit'
 };
 
 export default function ApartmentCard({
   apartment,
   onEdit,
   onDelete,
-  onToggleFavorite, // <-- NUOVA PROP
-  onClick,
+  onToggleFavorite,
 }: ApartmentCardProps) {
   const formattedDate = format(parseISO(apartment.cleaning_date), "dd/MM/yyyy", {
     locale: it,
   });
 
-  // Helper to get status class
+  // Helper to get status class (invariato)
   const getStatusClass = (status: string) => {
     switch (status) {
       case "Da Fare":
@@ -44,7 +42,7 @@ export default function ApartmentCard({
     }
   };
 
-  // Helper to get payment status class
+  // Helper to get payment status class (invariato)
   const getPaymentStatusClass = (status: string) => {
     switch (status) {
       case "Da Pagare":
@@ -56,30 +54,28 @@ export default function ApartmentCard({
     }
   };
 
-  // Funzioni handler aggiornate
-  const handleEdit = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onEdit(); // Chiama la prop direttamente
-  };
+  // Funzione 'handleEdit' rimossa.
 
   const handleDelete = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onDelete(); // Chiama la prop direttamente
+    e.stopPropagation(); // Ferma la propagazione per non aprire il modal di modifica
+    onDelete();
   };
 
-  // === NUOVA FUNZIONE HANDLER ===
   const handleToggleFavorite = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onToggleFavorite(); // Chiama la nuova prop
+    e.stopPropagation(); // Ferma la propagazione per non aprire il modal di modifica
+    onToggleFavorite();
   };
 
   return (
     <div
       className={cn(
         "bg-white rounded-lg shadow hover:shadow-md transition-shadow overflow-hidden cursor-pointer",
-        apartment.is_favorite && "ring-2 ring-yellow-400" // Aggiunge un bordo se è preferito
+        apartment.is_favorite && "ring-2 ring-yellow-400"
       )}
-      onClick={onClick}
+      // === MODIFICA ===
+      // Cliccando la card ora si apre il modal di modifica
+      onClick={onEdit}
+      // === FINE MODIFICA ===
     >
       <div className="p-5">
         <div className="flex justify-between items-start mb-3">
@@ -87,7 +83,7 @@ export default function ApartmentCard({
             {apartment.name}
           </h3>
           <div className="flex space-x-1 flex-shrink-0">
-            {/* === BOTTONE STELLA AGGIUNTO === */}
+            {/* Bottone Stella (invariato) */}
             <button
               className={cn(
                 "hover:text-yellow-500 p-1",
@@ -99,19 +95,14 @@ export default function ApartmentCard({
               onClick={handleToggleFavorite}
             >
               <Star
-                size={18} // Leggermente più grande per importanza
+                size={18}
                 fill={apartment.is_favorite ? "currentColor" : "none"}
               />
             </button>
-            {/* === FINE BOTTONE STELLA === */}
 
-            <button
-              className="text-blue-500 hover:text-blue-700 p-1"
-              aria-label="Modifica"
-              onClick={handleEdit}
-            >
-              <Edit size={16} />
-            </button>
+            {/* === MODIFICA: Bottone 'Edit' rimosso === */}
+
+            {/* Bottone Elimina (invariato) */}
             <button
               className="text-red-500 hover:text-red-700 p-1"
               aria-label="Elimina"
@@ -122,6 +113,7 @@ export default function ApartmentCard({
           </div>
         </div>
 
+        {/* Resto del file invariato */}
         <div className="flex items-center mb-3 text-gray-700">
           <Calendar className="text-gray-500 mr-2" size={16} />
           <span>{formattedDate}</span>

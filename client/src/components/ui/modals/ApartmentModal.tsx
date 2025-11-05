@@ -56,6 +56,13 @@ import { EmployeeModal } from "./EmployeeModal";
 
 type FormValues = z.infer<typeof apartmentWithEmployeesSchema>;
 
+// === MODIFICA 1: Definiamo un tipo per le variabili della mutazione ===
+type MutationVariables = {
+  values: FormValues;
+  mode: "create" | "edit";
+  id?: number;
+};
+
 type ApartmentModalProps = ModalProps<ApartmentWithAssignedEmployees>;
 
 export function ApartmentModal({
@@ -78,7 +85,8 @@ export function ApartmentModal({
     resolver: zodResolver(apartmentWithEmployeesSchema),
     defaultValues: {
       name: apartment?.name ?? "",
-      cleaning_date: apartment?.cleaning_date ?? format(new Date(), "yyyy-MM-dd"),
+      cleaning_date:
+        apartment?.cleaning_date ?? format(new Date(), "yyyy-MM-dd"),
       start_time: apartment?.start_time ?? "",
       status: apartment?.status ?? "Da Fare",
       payment_status: apartment?.payment_status ?? "Da Pagare",
@@ -93,7 +101,8 @@ export function ApartmentModal({
     if (isOpen) {
       form.reset({
         name: apartment?.name ?? "",
-        cleaning_date: apartment?.cleaning_date ?? format(new Date(), "yyyy-MM-dd"),
+        cleaning_date:
+          apartment?.cleaning_date ?? format(new Date(), "yyyy-MM-dd"),
         start_time: apartment?.start_time ?? "",
         status: apartment?.status ?? "Da Fare",
         payment_status: apartment?.payment_status ?? "Da Pagare",
@@ -104,36 +113,32 @@ export function ApartmentModal({
     }
   }, [isOpen, apartment, form]);
 
-  // Mutazione per creare/aggiornare l'appartamento
+  // === MODIFICA 2: La mutazione ora accetta 'MutationVariables' ===
   const mutation = useMutation({
-    mutationFn: (values: FormValues) => {
-      // === INIZIO CORREZIONE BUG 'id' UNDEFINED ===
+    mutationFn: ({ values, mode, id }: MutationVariables) => {
       if (mode === "edit") {
-        // Recuperiamo l'ID in modo sicuro.
-        const id = apartment?.id;
-
-        // Se siamo in modalità "modifica" ma l'ID non è disponibile,
-        // interrompiamo l'esecuzione lanciando un errore gestibile.
+        // Ora controlliamo l' 'id' che è stato passato esplicitamente
         if (!id) {
           throw new Error("ID ordine non disponibile per la modifica.");
         }
-
         const url = `/api/apartments/${id}`;
         const method = "PUT";
         return apiRequest(method, url, values);
       }
 
-      // Modalità 'create' (non serve l'ID)
+      // Modalità 'create'
       const url = "/api/apartments";
       const method = "POST";
       return apiRequest(method, url, values);
-      // === FINE CORREZIONE BUG 'id' UNDEFINED ===
     },
-    onSuccess: () => {
+    // === MODIFICA 3: 'onSuccess' usa le 'variables' per il toast ===
+    onSuccess: (data, variables) => {
       toast({
-        title: `Ordine ${mode === "edit" ? "aggiornato" : "creato"}`,
+        title: `Ordine ${
+          variables.mode === "edit" ? "aggiornato" : "creato"
+        }`,
         description: `L'ordine è stato ${
-          mode === "edit" ? "aggiornato" : "creato"
+          variables.mode === "edit" ? "aggiornato" : "creato"
         } con successo.`,
       });
       // Invalida tutte le query relative per aggiornare l'interfaccia
@@ -162,15 +167,19 @@ export function ApartmentModal({
     onError: (error: any) => {
       toast({
         title: "Errore",
-        // Mostra il messaggio di errore personalizzato (es. "ID ordine non disponibile...")
         description: error.message || "Si è verificato un errore.",
         variant: "destructive",
       });
     },
   });
 
+  // === MODIFICA 4: 'onSubmit' ora passa l'oggetto 'MutationVariables' ===
   const onSubmit = (values: FormValues) => {
-    mutation.mutate(values);
+    mutation.mutate({
+      values,
+      mode: mode, // Passiamo il 'mode' dalle props correnti
+      id: apartment?.id, // Passiamo l' 'id' dalle props correnti
+    });
   };
 
   const onEmployeeCreated = () => {

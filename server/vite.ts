@@ -69,10 +69,11 @@ export async function setupVite(app: Express, server: Server) {
 
 // === INIZIO MODIFICA ===
 export function serveStatic(app: Express) {
-  // Il server compilato è in 'dist/server/vite.js'
-  // Dobbiamo risalire di due livelli (../../) per trovare la root
-  // e poi scendere in 'client/dist'
-  const distPath = path.resolve(import.meta.dirname, "../../client/dist");
+  // Il server compilato è in 'dist/index.js'.
+  // `import.meta.dirname` sarà quindi la cartella '.../dist'.
+  // I file del client (come da log di build) sono in 'dist/public'.
+  // Quindi il percorso corretto è "public" relativo a dirname.
+  const distPath = path.resolve(import.meta.dirname, "public");
 
   log(`Serving static files from: ${distPath}`, "express");
 
@@ -83,7 +84,7 @@ export function serveStatic(app: Express) {
     );
   }
 
-  // 1. Servi i file statici (es. /assets/index-BlU5T4zM.js)
+  // 1. Servi i file statici (es. /assets/index-BGW9imqw.js)
   app.use(express.static(distPath));
 
   // 2. La rotta catch-all serve index.html solo per le rotte NON-API

@@ -1,0 +1,22 @@
+# Dipendenze e file di build
+node_modules/
+dist/
+build/
+
+# File di log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# File specifici dell'ambiente
+.env
+.env.local
+
+# File del database locale (se usi sqlite)
+database.db
+*.sqlite
+*.sqlite3
+
+# File di sistema
+.DS_Store
+Thumbs.db

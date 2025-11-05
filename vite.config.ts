@@ -30,4 +30,10 @@ export default defineConfig({
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
   },
+  // === INIZIO MODIFICA ===
+  // Aggiungi questa sezione per risolvere il problema di build di "hono/client"
+  optimizeDeps: {
+    exclude: ["hono/client"],
+  },
+  // === FINE MODIFICA ===
 });

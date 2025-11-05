@@ -1,4 +1,4 @@
-import React, { useState } from "react"; // Assicurati che React sia importato
+import React, { useState } from "react"; 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -56,12 +56,6 @@ import { EmployeeModal } from "./EmployeeModal";
 
 type FormValues = z.infer<typeof apartmentWithEmployeesSchema>;
 
-type MutationVariables = {
-  values: FormValues;
-  mode: "create" | "edit";
-  id?: number;
-};
-
 type ApartmentModalProps = ModalProps<ApartmentWithAssignedEmployees>;
 
 export function ApartmentModal({
@@ -84,8 +78,7 @@ export function ApartmentModal({
     resolver: zodResolver(apartmentWithEmployeesSchema),
     defaultValues: {
       name: apartment?.name ?? "",
-      cleaning_date:
-        apartment?.cleaning_date ?? format(new Date(), "yyyy-MM-dd"),
+      cleaning_date: apartment?.cleaning_date ?? format(new Date(), "yyyy-MM-dd"),
       start_time: apartment?.start_time ?? "",
       status: apartment?.status ?? "Da Fare",
       payment_status: apartment?.payment_status ?? "Da Pagare",
@@ -100,8 +93,7 @@ export function ApartmentModal({
     if (isOpen) {
       form.reset({
         name: apartment?.name ?? "",
-        cleaning_date:
-          apartment?.cleaning_date ?? format(new Date(), "yyyy-MM-dd"),
+        cleaning_date: apartment?.cleaning_date ?? format(new Date(), "yyyy-MM-dd"),
         start_time: apartment?.start_time ?? "",
         status: apartment?.status ?? "Da Fare",
         payment_status: apartment?.payment_status ?? "Da Pagare",
@@ -111,53 +103,42 @@ export function ApartmentModal({
       });
     }
   }, [isOpen, apartment, form]);
-
-  // La mutazione
+  
+  // Mutazione per creare/aggiornare l'appartamento
   const mutation = useMutation({
-    mutationFn: ({ values, mode, id }: MutationVariables) => {
-      if (mode === "edit") {
-        if (!id) {
-          throw new Error("ID ordine non disponibile per la modifica.");
-        }
-        const url = `/api/apartments/${id}`;
-        const method = "PUT";
-        return apiRequest(method, url, values);
-      }
-
-      // Modalità 'create'
-      const url = "/api/apartments";
-      const method = "POST";
+    mutationFn: (values: FormValues) => {
+      const url =
+        mode === "edit" ? `/api/apartments/${apartment!.id}` : "/api/apartments";
+      const method = mode === "edit" ? "PUT" : "POST";
       return apiRequest(method, url, values);
     },
-    onSuccess: (data, variables) => {
+    onSuccess: () => {
       toast({
-        title: `Ordine ${
-          variables.mode === "edit" ? "aggiornato" : "creato"
-        }`,
+        title: `Ordine ${mode === "edit" ? "aggiornato" : "creato"}`,
         description: `L'ordine è stato ${
-          variables.mode === "edit" ? "aggiornato" : "creato"
+          mode === "edit" ? "aggiornato" : "creato"
         } con successo.`,
       });
       // Invalida tutte le query relative per aggiornare l'interfaccia
-      queryClient.invalidateQueries({
-        predicate: (query) =>
-          typeof query.queryKey[0] === "string" &&
-          query.queryKey[0].startsWith("/api/apartments"),
+      queryClient.invalidateQueries({ 
+        predicate: (query) => 
+          typeof query.queryKey[0] === 'string' && 
+          query.queryKey[0].startsWith('/api/apartments') 
       });
-      queryClient.invalidateQueries({
-        predicate: (query) =>
-          typeof query.queryKey[0] === "string" &&
-          query.queryKey[0].startsWith("/api/calendar"),
+      queryClient.invalidateQueries({ 
+        predicate: (query) => 
+          typeof query.queryKey[0] === 'string' && 
+          query.queryKey[0].startsWith('/api/calendar') 
       });
-      queryClient.invalidateQueries({
-        predicate: (query) =>
-          typeof query.queryKey[0] === "string" &&
-          query.queryKey[0].startsWith("/api/statistics"),
+      queryClient.invalidateQueries({ 
+        predicate: (query) => 
+          typeof query.queryKey[0] === 'string' && 
+          query.queryKey[0].startsWith('/api/statistics') 
       });
-      queryClient.invalidateQueries({
-        predicate: (query) =>
-          typeof query.queryKey[0] === "string" &&
-          query.queryKey[0].startsWith("/api/employees"),
+      queryClient.invalidateQueries({ 
+        predicate: (query) => 
+          typeof query.queryKey[0] === 'string' && 
+          query.queryKey[0].startsWith('/api/employees') 
       });
       onClose();
     },
@@ -170,20 +151,12 @@ export function ApartmentModal({
     },
   });
 
-  // Avvolgiamo 'onSubmit' in 'React.useCallback'
-  // per assicurare che 'mode' e 'apartment' siano sempre aggiornati
-  const onSubmit = React.useCallback(
-    (values: FormValues) => {
-      mutation.mutate({
-        values,
-        mode: mode, // Usa la prop 'mode' corrente
-        id: apartment?.id, // Usa la prop 'apartment' corrente
-      });
-    },
-    [mode, apartment, mutation] // Dipendenze
-  );
+  const onSubmit = (values: FormValues) => {
+    mutation.mutate(values);
+  };
 
   const onEmployeeCreated = () => {
+    // Aggiorna l'elenco dei dipendenti
     queryClient.invalidateQueries({ queryKey: ["/api/employees"] });
     setIsEmployeeModalOpen(false);
   };
@@ -199,10 +172,7 @@ export function ApartmentModal({
           </DialogHeader>
           <Form {...form}>
             {/* Il form inizia qui */}
-            <form
-              onSubmit={form.handleSubmit(onSubmit)}
-              className="space-y-4 overflow-y-auto px-1"
-            >
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 overflow-y-auto px-1">
               {/* Sezione Dati Principali */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
@@ -212,6 +182,7 @@ export function ApartmentModal({
                     <FormItem>
                       <FormLabel>Nome Ordine</FormLabel>
                       <FormControl>
+                        {/* === MODIFICA 1: Placeholder rimosso === */}
                         <Input {...field} />
                       </FormControl>
                       <FormMessage />
@@ -226,11 +197,7 @@ export function ApartmentModal({
                     <FormItem>
                       <FormLabel>Prezzo</FormLabel>
                       <FormControl>
-                        <Input
-                          type="number"
-                          placeholder="Es. 50.00"
-                          {...field}
-                        />
+                        <Input type="number" placeholder="Es. 50.00" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -245,23 +212,20 @@ export function ApartmentModal({
                   name="cleaning_date"
                   render={({ field }) => (
                     <FormItem className="flex flex-col pt-2">
+                      {/* === MODIFICA 2: Label cambiata === */}
                       <FormLabel>Data</FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
                           <FormControl>
                             <Button
                               variant={"outline"}
-                              className={cn(
+                              className={cn( 
                                 "pl-3 text-left font-normal",
                                 !field.value && "text-muted-foreground"
-                              )}
+                              )} 
                             >
                               {field.value ? (
-                                format(
-                                  new Date(field.value + "T00:00:00"),
-                                  "PPP",
-                                  { locale: it }
-                                )
+                                format(new Date(field.value + "T00:00:00"), "PPP", { locale: it })
                               ) : (
                                 <span>Scegli una data</span>
                               )}
@@ -272,15 +236,9 @@ export function ApartmentModal({
                         <PopoverContent className="w-auto p-0" align="start">
                           <Calendar
                             mode="single"
-                            selected={
-                              field.value
-                                ? new Date(field.value + "T00:00:00")
-                                : undefined
-                            }
+                            selected={field.value ? new Date(field.value + "T00:00:00") : undefined}
                             onSelect={(date) =>
-                              field.onChange(
-                                date ? format(date, "yyyy-MM-dd") : ""
-                              )
+                              field.onChange(date ? format(date, "yyyy-MM-dd") : "")
                             }
                             initialFocus
                           />
@@ -296,6 +254,7 @@ export function ApartmentModal({
                   name="start_time"
                   render={({ field }) => (
                     <FormItem>
+                      {/* === MODIFICA 3: Label cambiata === */}
                       <FormLabel>Ora</FormLabel>
                       <FormControl>
                         <Input type="time" {...field} />
@@ -314,10 +273,7 @@ export function ApartmentModal({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Stato Ordine</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Seleziona stato..." />
@@ -326,7 +282,6 @@ export function ApartmentModal({
                         <SelectContent>
                           <SelectItem value="Da Fare">Da Fare</SelectItem>
                           <SelectItem value="In Corso">In Corso</SelectItem>
-                          {/* === QUI C'ERA IL TYPO: S-electItem === */}
                           <SelectItem value="Fatto">Fatto</SelectItem>
                         </SelectContent>
                       </Select>
@@ -334,17 +289,14 @@ export function ApartmentModal({
                     </FormItem>
                   )}
                 />
-
+                
                 <FormField
                   control={form.control}
                   name="payment_status"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Stato Pagamento</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Seleziona stato..." />
@@ -370,9 +322,7 @@ export function ApartmentModal({
                 render={({ field }) => (
                   <FormItem>
                     <div className="flex justify-between items-center mb-2">
-                      <FormLabel className="text-lg">
-                        Clienti Assegnati
-                      </FormLabel>
+                      <FormLabel className="text-lg">Clienti Assegnati</FormLabel>
                       <Button
                         type="button"
                         variant="outline"
@@ -389,23 +339,22 @@ export function ApartmentModal({
                           type="multiple"
                           variant="outline"
                           className="flex-wrap justify-start p-4"
-                          value={
-                            Array.isArray(field.value)
-                              ? field.value.map(String)
-                              : []
-                          }
+                          
+                          value={Array.isArray(field.value) ? field.value.map(String) : []}
+                          
                           onValueChange={(value: string[]) => {
                             const numericValue = value
-                              .map((id) => parseInt(id, 10))
-                              .filter((id) => !isNaN(id) && id > 0);
-
+                              .map(id => parseInt(id, 10)) 
+                              .filter(id => !isNaN(id) && id > 0);
+                            
                             field.onChange(numericValue);
                           }}
                         >
                           {employees?.map((employee) => (
                             <ToggleGroupItem
                               key={employee.id}
-                              value={String(employee.id)}
+                              value={String(employee.id)} 
+                              // === MODIFICA 4: Stile per selezione ===
                               className="flex gap-2 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary/90"
                               aria-label={`Toggle ${employee.first_name}`}
                             >
@@ -429,10 +378,7 @@ export function ApartmentModal({
                   <FormItem>
                     <FormLabel>Note</FormLabel>
                     <FormControl>
-                      <Textarea
-                        placeholder="Note sull'ordine..."
-                        {...field}
-                      />
+                      <Textarea placeholder="Note sull'ordine..." {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -451,7 +397,7 @@ export function ApartmentModal({
                     : "Crea Ordine"}
                 </Button>
               </DialogFooter>
-              {/* Il form finisce qui */}
+            {/* Il form finisce qui */}
             </form>
           </Form>
         </DialogContent>

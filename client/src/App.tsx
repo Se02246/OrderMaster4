@@ -28,15 +28,13 @@ function AppRouter() {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
-  // === MODIFICA: Il blocco useEffect per il tema è stato rimosso ===
-  /*
+  // === INIZIO MODIFICA: Ripristina useEffect per il tema ===
   useEffect(() => {
     const storedColor = localStorage.getItem("themeColor");
     if (storedColor) {
       document.documentElement.style.setProperty("--primary", storedColor);
     }
   }, []);
-  */
   // === FINE MODIFICA ===
 
   // Finché non sappiamo se l'utente è loggato, non mostriamo nulla (o un caricamento)

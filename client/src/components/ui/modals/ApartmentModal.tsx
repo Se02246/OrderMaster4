@@ -60,7 +60,7 @@ type ApartmentModalProps = ModalProps<ApartmentWithAssignedEmployees>;
 
 export function ApartmentModal({
   mode,
-  data: apartment,
+  apartment,
   isOpen,
   onClose,
 }: ApartmentModalProps) {

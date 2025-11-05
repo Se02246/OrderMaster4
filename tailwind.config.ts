@@ -62,7 +62,7 @@ const config = {
           light: "#555555"    // Un grigio leggermente più chiaro
         },
         light: {
-          DEFAULT: "#f4f4f4", // Un grigio molto chiaro
+          DEFAULT: "#f4f4f4", // Un grio molto chiaro
           medium: "#e0e0e0"   // Un grigio medio-chiaro
         }
         // === FINE MODIFICA ===

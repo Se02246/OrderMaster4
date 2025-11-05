@@ -69,23 +69,57 @@ export default function Home() {
     },
   });
 
-  // Mutazione preferiti (invariata)
+  // === INIZIO MODIFICA: AGGIORNAMENTO OTTIMISTICO ===
   const toggleFavoriteMutation = useMutation({
     mutationFn: async (apartmentId: number) => {
       return apiRequest("PATCH", `/api/apartments/${apartmentId}/toggle-favorite`);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/apartments"] });
+    
+    // Esegui questo PRIMA della chiamata API
+    onMutate: async (apartmentId: number) => {
+      // 1. Annulla le query in corso per evitare sovrascritture
+      await queryClient.cancelQueries({ queryKey: ["/api/apartments"] });
+
+      // 2. Salva lo stato precedente (per il rollback)
+      const previousApartments = queryClient.getQueryData<ApartmentWithAssignedEmployees[]>(["/api/apartments"]);
+
+      // 3. Aggiorna ottimisticamente la cache
+      if (previousApartments) {
+        queryClient.setQueryData<ApartmentWithAssignedEmployees[]>(
+          ["/api/apartments"],
+          (oldData) => {
+            if (!oldData) return [];
+            // Mappa i vecchi dati e inverti il 'is_favorite' solo per l'ID cliccato
+            return oldData.map((apartment) =>
+              apartment.id === apartmentId
+                ? { ...apartment, is_favorite: !apartment.is_favorite } 
+                : apartment
+            );
+          }
+        );
+      }
+      // 4. Restituisci lo snapshot per il rollback
+      return { previousApartments };
     },
-    onError: (error) => {
+
+    // In caso di errore, ripristina i dati precedenti
+    onError: (err, variables, context) => {
+      if (context?.previousApartments) {
+        queryClient.setQueryData(["/api/apartments"], context.previousApartments);
+      }
       toast({
         title: "Errore",
-        description: error.message || "Impossibile aggiornare il preferito.",
+        description: "Impossibile aggiornare il preferito. Ripristino.",
         variant: "destructive",
       });
+    },
+
+    // Alla fine (successo o errore), sincronizza col server per sicurezza
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/apartments"] });
     },
   });
+  // === FINE MODIFICA ===
 
   const handleDelete = (apartment: ApartmentWithAssignedEmployees) => {
     setModalState({ type: "delete", data: apartment });
@@ -97,7 +131,7 @@ export default function Home() {
     }
   };
 
-  // Logica di ordinamento e filtro
+  // Logica di ordinamento e filtro (invariata)
   const processedAppointments = useMemo(() => {
     const search = searchTerm.toLowerCase();
 
@@ -122,9 +156,6 @@ export default function Home() {
       );
     });
 
-    // === MODIFICA ===
-    // Ordina solo per data e ora.
-    // Tutta la logica 'is_favorite' è stata rimossa.
     return filtered.sort((a, b) => {
       try {
         const dateA = new Date(
@@ -134,7 +165,6 @@ export default function Home() {
           b.cleaning_date + "T" + (b.start_time || "00:00")
         ).getTime();
         
-        // Se le date/ore sono identiche, mantieni l'ordine (o ordina per ID)
         if (dateA === dateB) {
             return a.id - b.id; // Ordinamento stabile
         }
@@ -146,7 +176,6 @@ export default function Home() {
         return 0;
       }
     });
-    // === FINE MODIFICA ===
     
   }, [apartments, searchTerm]);
 

@@ -69,34 +69,23 @@ export default function Home() {
     },
   });
 
-  // === MUTAZIONE PREFERITI (MODIFICATA) ===
+  // Mutazione preferiti (invariata)
   const toggleFavoriteMutation = useMutation({
     mutationFn: async (apartmentId: number) => {
       return apiRequest("PATCH", `/api/apartments/${apartmentId}/toggle-favorite`);
     },
-    
-    // === MODIFICA ===
-    // Ho sostituito 'setQueryData' (aggiornamento ottimistico)
-    // con 'invalidateQueries'.
-    // Questo forza un ricaricamento dei dati dal server.
-    // È il metodo più sicuro per garantire che sia la stella
-    // sia l'ordinamento (nel useMemo) si aggiornino correttamente.
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/apartments"] });
     },
-    // === FINE MODIFICA ===
-
     onError: (error) => {
       toast({
         title: "Errore",
         description: error.message || "Impossibile aggiornare il preferito.",
         variant: "destructive",
       });
-      // Ricarica i dati in caso di errore
       queryClient.invalidateQueries({ queryKey: ["/api/apartments"] });
     },
   });
-  // === FINE MUTAZIONE ===
 
   const handleDelete = (apartment: ApartmentWithAssignedEmployees) => {
     setModalState({ type: "delete", data: apartment });
@@ -108,14 +97,13 @@ export default function Home() {
     }
   };
 
-  // Logica di ordinamento e filtro (invariata)
+  // Logica di ordinamento e filtro
   const processedAppointments = useMemo(() => {
     const search = searchTerm.toLowerCase();
 
     const filtered = (apartments || []).filter((apartment) => {
-      if (!search) return true; // Se la ricerca è vuota, includi tutto
+      if (!search) return true;
 
-      // Usa la funzione sicura per le date
       const cleaningDate = safeFormatDate(apartment.cleaning_date);
 
       const fieldsToSearch = [
@@ -134,13 +122,10 @@ export default function Home() {
       );
     });
 
-    // Ordina: preferiti in alto, poi per data
+    // === MODIFICA ===
+    // Ordina solo per data.
+    // Ho rimosso le due righe che controllavano 'is_favorite'.
     return filtered.sort((a, b) => {
-      // Regola 1: I preferiti (is_favorite = true) vengono prima
-      if (a.is_favorite && !b.is_favorite) return -1;
-      if (!a.is_favorite && b.is_favorite) return 1;
-
-      // Regola 2: Se entrambi (o nessuno) sono preferiti, ordina per data
       try {
         const dateA = new Date(
           a.cleaning_date + "T" + (a.start_time || "00:00")
@@ -148,13 +133,15 @@ export default function Home() {
         const dateB = new Date(
           b.cleaning_date + "T" + (b.start_time || "00:00")
         ).getTime();
-        if (isNaN(dateA)) return 1; // Metti le date non valide in fondo
+        if (isNaN(dateA)) return 1;
         if (isNaN(dateB)) return -1;
         return dateA - dateB; // Ordine cronologico
       } catch (e) {
         return 0;
       }
     });
+    // === FINE MODIFICA ===
+    
   }, [apartments, searchTerm]);
 
   // Skeleton e gestione errore (invariati)
@@ -209,7 +196,6 @@ export default function Home() {
                 onToggleFavorite={() =>
                   toggleFavoriteMutation.mutate(apartment.id)
                 }
-                // Queste props non sembrano usate dalla ApartmentCard, ma le lascio
                 onStatusChange={() =>
                   queryClient.invalidateQueries({ queryKey: ["/api/apartments"] })
                 }

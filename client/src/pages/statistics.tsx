@@ -109,8 +109,10 @@ export default function Statistics() {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), "yyyy-MM"));
 
-  // Genera lista di anni per il dropdown (es. 5 anni indietro)
-  const availableYears = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
+  // === INIZIO MODIFICA (Rimozione limite 5 anni) ===
+  // // Genera lista di anni per il dropdown (es. 5 anni indietro)
+  // const availableYears = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
+  // === FINE MODIFICA ===
 
   // Aggiorna la query per includere gli stati
   const { data: stats, isLoading, isError } = useQuery<StatisticsData>({
@@ -306,21 +308,19 @@ export default function Statistics() {
             <CardTitle>Ordini per Mese ({selectedYear})</CardTitle>
             <div className="w-full max-w-sm pt-2">
               <Label htmlFor="year-picker" className="text-sm font-medium">Seleziona Anno</Label>
-              <Select
-                value={String(selectedYear)}
-                onValueChange={(value) => setSelectedYear(Number(value))}
-              >
-                <SelectTrigger id="year-picker" className="mt-1">
-                  <SelectValue placeholder="Seleziona un anno" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableYears.map(year => (
-                    <SelectItem key={year} value={String(year)}>
-                      {year}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              
+              {/* === INIZIO MODIFICA: Sostituito Select con Input type="number" === */}
+              <Input
+                id="year-picker"
+                type="number"
+                placeholder="Inserisci anno"
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(Number(e.target.value))}
+                className="mt-1"
+                step="1"
+              />
+              {/* === FINE MODIFICA === */}
+
             </div>
           </CardHeader>
           {/* === FINE MODIFICA === */}

@@ -72,28 +72,36 @@ export function generateICSContent(apartment: ApartmentWithAssignedEmployees): s
     `DESCRIPTION:${description}`, 
     "END:VEVENT",
     "END:VCALENDAR",
-  ].join("\r\n");
+  ].join("\r_ \n"); // Assicurati che il join usi \r\n
 
   return icsContent;
 }
 
 /**
- * Avvia il download di un file .ics.
+ * === SEZIONE MODIFICATA ===
+ * Avvia il download di un file .ics usando un Data URI
+ * per un'esperienza migliore su mobile.
  * @param apartmentName Il nome dell'evento, usato per il nome del file.
  * @param icsContent Il contenuto generato da generateICSContent.
  */
 export function downloadICSFile(apartmentName: string, icsContent: string) {
-  // Cambiato MIME type per maggiore compatibilità
-  const blob = new Blob([icsContent], { type: "text/calendar;charset=utf-8;" }); 
-  
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  
+  // Pulisce il nome del file
   const fileName = `${apartmentName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.ics`;
+
+  // Crea un link temporaneo
+  const link = document.createElement("a");
   
+  // Usa un DATA URI invece di un Blob URL.
+  // Questo, specialmente su mobile (iOS), ha più probabilità
+  // di essere interpretato come "contenuto" da aprire direttamente,
+  // piuttosto che come "file" da scaricare e salvare.
+  link.href = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(icsContent);
+  
+  // Il browser userà questo come nome del file suggerito
   link.setAttribute("download", fileName);
-  document.body.appendChild(link);
+  
+  // Non è necessario aggiungere il link al documento per i data URI
+  
+  // Simula il click per avviare il download/apertura
   link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(link.href);
 }

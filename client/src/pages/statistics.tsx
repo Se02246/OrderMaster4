@@ -146,7 +146,7 @@ export default function Statistics() {
 
   // Aggiorna la query per includere gli stati (ora usa selectedYear, che non cambia con l'input)
   const { data: stats, isLoading, isError } = useQuery<StatisticsData>({
-    queryKey: [\`/api/statistics?year=${selectedYear}&monthYear=${selectedMonth}\`],
+    queryKey: [`/api/statistics?year=${selectedYear}&monthYear=${selectedMonth}`],
   });
   // === FINE MODIFICA ===
 

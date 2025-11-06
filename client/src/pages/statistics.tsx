@@ -301,7 +301,8 @@ export default function StatisticsPage() {
             {/* Titolo aggiornato e selettori rimossi */}
             <CardTitle>
               Ordini per Giorno (Mese: {format(parse(selectedMonth, "yyyy-MM", new Date()), "MMMM yyyy", { locale: it })})
-            </Title>
+            {/* === CORREZIONE ERRORE BUILD: Chiusura tag errata === */}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (

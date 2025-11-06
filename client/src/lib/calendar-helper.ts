@@ -29,12 +29,12 @@ export function generateICSContent(apartment: ApartmentWithAssignedEmployees): s
   // che rappresenta "14:00 in GMT+1" (ovvero 13:00 UTC).
   const localDate = parse(localDateTimeString, "yyyy-MM-dd HH:mm", new Date());
 
-  // 3. Formatta le date per il file
+  // 4. Formatta le date per il file
   // formatICSDate convertirà automaticamente da locale a UTC.
   const icsStartDate = formatICSDate(localDate);
   const icsEndDate = formatICSDate(localEndDate);
 
-  // 4. Crea la descrizione (invariato)
+  // 5. Crea la descrizione (invariato)
   let description = "";
   if (apartment.notes) {
     description += `Note: ${apartment.notes.replace(/\n/g, "\\n")}`;
@@ -56,31 +56,16 @@ export function generateICSContent(apartment: ApartmentWithAssignedEmployees): s
 
   // 7. Assembla il file .ics (invariato)
   const icsContent = [
-    "BEGIN:VCALENDAR",//
-    "VERSION:2.0",//
-    "PRODID:-//GestoreOrdini//App v1.0//IT",//
-    "CALSCALE:GREGORIAN",//
-    "BEGIN:VEVENT",//
-    `UID:${uid}`,//
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//GestoreOrdini//App v1.0//IT",
+    "CALSCALE:GREGORIAN",
+    "BEGIN:VEVENT",
+    `UID:${uid}`,
     `DTSTAMP:${formatICSDate(new Date())}`, 
-    `DTSTART:${icsStartDate}`, // Es: 20251110T130000    // Es: 20251110T140000Z
+    `DTSTART:${icsStartDate}`, // Es: 20251110T130000Z
     `SUMMARY:${apartment.name}`, 
     `DESCRIPTION:${description}`, 
-
-    // --- Allarme 1 (30 minuti prima) ---
-    "BEGIN:VALARM",
-    "ACTION:DISPLAY",
-    `DESCRIPTION:${apartment.name} (fra 30 minuti)`,
-    "TRIGGER;RELATED=START:-PT30M", // 30 Minuti Prima
-    "END:VALARM",
-    
-    // --- Allarme 2 (All'ora dell'evento) ---
-    "BEGIN:VALARM",
-    "ACTION:DISPLAY",
-    `DESCRIPTION:${apartment.name} (Adesso)`,
-    "TRIGGER;RELATED=START:PT0M", // All'orario di inizio
-    "END:VALARM",
-    
     "END:VEVENT",
     "END:VCALENDAR",
   ].join("\r\n");

@@ -7,6 +7,7 @@ import {
   Trash2,
   Euro,
   Star,
+  CalendarPlus, // <-- 1. IMPORTATO (sostituisce Bell)
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +16,7 @@ type ApartmentCardProps = {
   onEdit: () => void;
   onDelete: () => void;
   onToggleFavorite: () => void;
+  onAddToCalendarClick: () => void; // <-- 2. NUOVA PROP (sostituisce onNotifyClick)
   onClick?: () => void;
 };
 
@@ -23,6 +25,7 @@ export default function ApartmentCard({
   onEdit,
   onDelete,
   onToggleFavorite,
+  onAddToCalendarClick, // <-- 3. DESTRUTTURATA
 }: ApartmentCardProps) {
   const formattedDate = format(parseISO(apartment.cleaning_date), "dd/MM/yyyy", {
     locale: it,
@@ -42,8 +45,7 @@ export default function ApartmentCard({
     }
   };
 
-  // === INIZIO MODIFICA ===
-  // Helper to get payment status class
+  // Helper to get payment status class (invariato)
   const getPaymentStatusClass = (status: string) => {
     switch (status) {
       case "Da Pagare":
@@ -54,7 +56,6 @@ export default function ApartmentCard({
         return "bg-gray-100 text-gray-800";
     }
   };
-  // === FINE MODIFICA ===
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -64,6 +65,12 @@ export default function ApartmentCard({
   const handleToggleFavorite = (e: React.MouseEvent) => {
     e.stopPropagation();
     onToggleFavorite();
+  };
+
+  // <-- 4. NUOVO HANDLER
+  const handleAddToCalendarClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Impedisce di triggerare onEdit
+    onAddToCalendarClick();
   };
 
   return (
@@ -79,14 +86,29 @@ export default function ApartmentCard({
           <h3 className="font-semibold text-lg text-dark mr-2">
             {apartment.name}
           </h3>
+          {/* === 5. GRUPPO PULSANTI AGGIORNATO === */}
           <div className="flex space-x-1 flex-shrink-0">
-            {/* Icona Stella (invariata) */}
+            
+            {/* NUOVO PULSANTE CALENDARIO */}
+            <button
+              className={cn(
+                "p-1 text-green-600 hover:text-green-800",
+              )}
+              aria-label="Aggiungi al calendario"
+              onClick={handleAddToCalendarClick}
+              title="Aggiungi al calendario"
+            >
+              <CalendarPlus size={20} />
+            </button>
+
+            {/* Pulsante Preferito (invariato) */}
             <button
               className={cn(
                 "p-1 text-yellow-400 hover:text-yellow-500", 
               )}
               aria-label="Preferito"
               onClick={handleToggleFavorite}
+              title="Preferito"
             >
               <Star
                 size={20}
@@ -94,11 +116,12 @@ export default function ApartmentCard({
               />
             </button>
 
-            {/* Icona Elimina (invariata) */}
+            {/* Pulsante Elimina (invariato) */}
             <button
               className="text-red-500 hover:text-red-700 p-1"
               aria-label="Elimina"
               onClick={handleDelete}
+              title="Elimina"
             >
               <Trash2 size={20} />
             </button>

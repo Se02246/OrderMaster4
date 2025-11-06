@@ -96,7 +96,8 @@ const earningsByMonthConfig = {
 // === FINE MODIFICA ===
 
 
-export function StatisticsPage() {
+// === CORREZIONE ERRORE BUILD: Aggiunto "default" all'esportazione ===
+export default function StatisticsPage() {
   
   // === INIZIO MODIFICA: Stati per i selettori globali ===
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -300,7 +301,7 @@ export function StatisticsPage() {
             {/* Titolo aggiornato e selettori rimossi */}
             <CardTitle>
               Ordini per Giorno (Mese: {format(parse(selectedMonth, "yyyy-MM", new Date()), "MMMM yyyy", { locale: it })})
-            </CardTitle>
+            </Title>
           </CardHeader>
           <CardContent>
             {isLoading ? (

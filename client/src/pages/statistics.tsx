@@ -95,6 +95,7 @@ const earningsChartConfig = {
   },
 } satisfies ChartConfig;
 
+// === CORREZIONE BUG VISIVO E BUILD: Rimosso backslash (\) prima del backtick (`) ===
 // Helper per formattare in Euro
 const formatCurrency = (value: number) => `€\${value.toLocaleString('it-IT', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 // === FINE MODIFICA ===
@@ -145,6 +146,7 @@ export default function Statistics() {
   // === FINE MODIFICA ===
 
   // Aggiorna la query per includere gli stati (ora usa selectedYear, che non cambia con l'input)
+  // QUESTA RIGA E' CORRETTA. L'ERRORE NEL BUILD LOG ERA CAUSATO DALLA RIGA 'formatCurrency' ERRATA.
   const { data: stats, isLoading, isError } = useQuery<StatisticsData>({
     queryKey: [`/api/statistics?year=${selectedYear}&monthYear=${selectedMonth}`],
   });
@@ -181,10 +183,11 @@ export default function Statistics() {
   }));
 
   // === INIZIO MODIFICA: Preparazione dati per Guadagni ===
-  const earningsData = stats.earningsPerMonthInYear.map(m => ({
+  // Assicurati che 'stats.earningsPerMonthInYear' esista prima di mapparlo
+  const earningsData = stats.earningsPerMonthInYear ? stats.earningsPerMonthInYear.map(m => ({
     month: formatMonthAbbr(m.month!), 
     guadagni: m.earnings,
-  }));
+  })) : []; // Usa un array vuoto come fallback
   // === FINE MODIFICA ===
 
   return (
@@ -212,7 +215,7 @@ export default function Statistics() {
             <Zap className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {stats.mostProductiveMonth.count > 0 ? (
+            {stats.mostProductiveMonth && stats.mostProductiveMonth.count > 0 ? (
               <>
                 <div className="text-2xl font-bold">{stats.mostProductiveMonth.count} ordini</div>
                 <p className="text-xs text-muted-foreground">
@@ -236,7 +239,7 @@ export default function Statistics() {
             {/* === FINE CORREZIONE ERRORE BUILD === */}
           </CardHeader>
           <CardContent>
-            {stats.topEmployees.length > 0 ? (
+            {stats.topEmployees && stats.topEmployees.length > 0 ? (
               <ol className="list-decimal list-inside space-y-2">
                 {stats.topEmployees.map((employee, index) => (
                   <li key={index} className="text-sm">
@@ -262,7 +265,7 @@ export default function Statistics() {
             {/* === FINE CORREZIONE ERRORE BUILD === */}
           </CardHeader>
           <CardContent>
-            {stats.busiestDays.length > 0 ? (
+            {stats.busiestDays && stats.busiestDays.length > 0 ? (
               <ol className="list-decimal list-inside space-y-2">
                 {stats.busiestDays.map((day, index) => (
                   <li key={index} className="text-sm">

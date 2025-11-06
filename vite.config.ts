@@ -14,7 +14,7 @@ export default defineConfig({
       targets: [
         {
           // === INIZIO MODIFICA ===
-          // Correggi il percorso: da 'client/sw.js' a 'client/public/sw.js'
+          // Il percorso DEVE puntare a "client/public/sw.js"
           src: path.resolve(import.meta.dirname, "client/public/sw.js"),
           // === FINE MODIFICA ===
           dest: ".",

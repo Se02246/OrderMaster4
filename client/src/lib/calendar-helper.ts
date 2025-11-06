@@ -3,12 +3,10 @@ import { parse, format, addHours } from "date-fns";
 // NESSUNA importazione di date-fns-tz
 
 /**
- * Formatta una data per il formato ICS (UTC: YYYYMMDDTHHmmssZ).
- * La 'Z' alla fine del formato indica a 'format' di convertire
- * la data (che è nel fuso orario locale) nel fuso orario UTC.
+ * Formatta una data per il formato ICS LOCALE (senza la 'Z' UTC).
  */
 function formatICSDate(date: Date): string {
-  // 'yyyyMMdd'T'HHmmss'Z' è il formato standard UTC per ICS
+  // 'yyyyMMdd'T'HHmmss' (SENZA la 'Z' alla fine)
   return format(date, "yyyyMMdd'T'HHmmss'");
 }
 
@@ -24,15 +22,12 @@ export function generateICSContent(apartment: ApartmentWithAssignedEmployees): s
   
   // 2. Analizza la stringa come data/ora LOCALE
   const localDate = parse(localDateTimeString, "yyyy-MM-dd HH:mm", new Date());
-  
-  // 3. Calcola la data di fine (assumiamo 1 ora di durata)
-  const localEndDate = addHours(localDate, 1);
 
-  // 4. Formatta le date per il file
+  // 3. Formatta la data per il file (sarà in formato locale)
   const icsStartDate = formatICSDate(localDate);
-  const icsEndDate = formatICSDate(localEndDate);
+  const icsStamp = formatICSDate(new Date()); // Timestamp di creazione
 
-  // 5. Crea la descrizione
+  // 4. Crea la descrizione (invariato)
   let description = "";
   if (apartment.notes) {
     description += `Note: ${apartment.notes.replace(/\n/g, "\\n")}`;
@@ -49,10 +44,11 @@ export function generateICSContent(apartment: ApartmentWithAssignedEmployees): s
      description += `\\n\\nPrezzo: ${apartment.price} €`;
   }
 
-  // 6. Crea un UID univoco
+  // 5. Crea un UID univoco (invariato)
   const uid = `apartment-${apartment.id}-${Date.now()}@gestoreordini.app`;
 
-  // 7. Assembla il file .ics (con il fix \r\n corretto)
+  // === INIZIO MODIFICA ===
+  // 6. Assembla il file .ics (con i due allarmi)
   const icsContent = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
@@ -60,21 +56,35 @@ export function generateICSContent(apartment: ApartmentWithAssignedEmployees): s
     "CALSCALE:GREGORIAN",
     "BEGIN:VEVENT",
     `UID:${uid}`,
-    `DTSTAMP:${formatICSDate(new Date())}`, 
-    `DTSTART:${icsStartDate}`,
-    `DTEND:${icsEndDate}`,
+    `DTSTAMP:${icsStamp}`,
+    `DTSTART:${icsStartDate}`, // Orario dell'evento (es. 07:00)
     `SUMMARY:${apartment.name}`, 
-    `DESCRIPTION:${description}`, 
+    `DESCRIPTION:${description}`,
+    
+    // --- Allarme 1 (30 minuti prima) ---
+    "BEGIN:VALARM",
+    "ACTION:DISPLAY",
+    `DESCRIPTION:${apartment.name} (fra 30 minuti)`,
+    "TRIGGER;RELATED=START:-PT30M", // 30 Minuti Prima
+    "END:VALARM",
+    
+    // --- Allarme 2 (All'ora dell'evento) ---
+    "BEGIN:VALARM",
+    "ACTION:DISPLAY",
+    `DESCRIPTION:${apartment.name} (Adesso)`,
+    "TRIGGER;RELATED=START:PT0M", // All'orario di inizio
+    "END:VALARM",
+    
     "END:VEVENT",
     "END:VCALENDAR",
-  ].join("\r\n"); // <-- Questo era il fix precedente, ed è corretto.
+  ].join("\r\n");
+  // === FINE MODIFICA ===
 
   return icsContent;
 }
 
 /**
- * Forza il download o l'apertura di un file .ics.
- * Questo metodo (tramite link 'a') è più affidabile di 'window.open()'.
+ * Tenta di APRIRE l'evento .ics direttamente, invece di scaricarlo.
  * @param icsContent Il contenuto generato da generateICSContent.
  */
 export function downloadICSFile(icsContent: string) {
@@ -85,20 +95,11 @@ export function downloadICSFile(icsContent: string) {
   // 2. Crea un URL per questo file in memoria
   const url = URL.createObjectURL(blob);
 
-  // 3. Crea un elemento link 'a' invisibile
-  const link = document.createElement("a");
-  link.href = url;
-  
-  // 4. Imposta il nome del file (importante per il download)
-  link.download = "appuntamento.ics"; 
+  // 3. Usa window.open() per dire al browser "Apri questo URL".
+  window.open(url);
 
-  // 5. Aggiungi il link al corpo del documento (necessario per Firefox)
-  document.body.appendChild(link);
-  
-  // 6. Simula un clic sul link
-  link.click();
-  
-  // 7. Rimuovi il link dal documento e rilascia l'URL
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  // 4. Rilascia l'URL dalla memoria dopo un breve ritardo.
+  setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, 1000);
 }

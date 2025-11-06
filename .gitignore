@@ -1,0 +1,10 @@
+# Dipendenze
+node_modules
+
+# Build
+dist
+
+# Variabili d'ambiente
+.env
+.env.*
+!.env.example

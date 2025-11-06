@@ -9,7 +9,7 @@ import { parse, format, addHours } from "date-fns";
  */
 function formatICSDate(date: Date): string {
   // 'yyyyMMdd'T'HHmmss'Z' è il formato standard UTC per ICS
-  return format(date, "yyyyMMdd'T'HHmmss'Z'");
+  return format(date, "yyyyMMdd'T'HHmmss'");
 }
 
 /**

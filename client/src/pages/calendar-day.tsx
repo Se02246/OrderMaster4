@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-// === INIZIO CORREZIONE ROUTING ===
 import { useLocation, useRoute } from "wouter";
-// === FINE CORREZIONE ROUTING ===
 import { format, parse, isValid } from "date-fns";
 import { it } from "date-fns/locale";
 import { ArrowLeft, Plus } from "lucide-react";
@@ -16,29 +14,24 @@ import { ApartmentModal } from "@/components/ui/modals/ApartmentModal";
 import ConfirmDeleteModal from "@/components/ui/modals/ConfirmDeleteModal";
 import { ModalState } from "@/components/ui/modals/types";
 import { useToast } from "@/hooks/use-toast";
+// === INIZIO MODIFICHE ===
+import { generateICSContent, downloadICSFile } from "@/lib/calendar-helper";
+// === FINE MODIFICHE ===
 
 export default function CalendarDay() {
-  // === INIZIO CORREZIONE ROUTING ===
-  // Sostituisco useParams con useRoute
   const [match, params] = useRoute("/calendar/:date");
   const dateParam = params ? params.date : null;
-
-  // Sostituisco useNavigate con useLocation
   const [location, navigate] = useLocation();
-  // === FINE CORREZIONE ROUTING ===
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // --- Gestione Data ---
+  // Gestione Data (invariata)
   const [currentDate, setCurrentDate] = useState<Date | null>(() => {
-    if (!dateParam) return new Date(); // Default a oggi se nessun parametro
+    if (!dateParam) return new Date();
     const parsedDate = parse(dateParam, "yyyy-MM-dd", new Date());
-    return isValid(parsedDate) ? parsedDate : new Date(); // Default a oggi se data non valida
+    return isValid(parsedDate) ? parsedDate : new Date();
   });
-
-  // Reindirizza se la data non è valida o non è nel formato corretto
-  // (La logica di navigazione è compatibile con wouter)
   if (
     !dateParam ||
     !isValid(currentDate) ||
@@ -48,35 +41,32 @@ export default function CalendarDay() {
       replace: true,
     });
   }
-
   const formattedDate = format(currentDate, "yyyy-MM-dd");
   const displayDate = format(currentDate, "EEEE d MMMM yyyy", { locale: it });
 
-  // --- Fetch Dati ---
+  // Fetch Dati (invariata)
   const { data: apartments, isLoading, error } = useQuery<
     ApartmentWithAssignedEmployees[]
   >({
     queryKey: [`/api/apartments/date/${formattedDate}`],
   });
 
-  // --- Gestione Modali ---
+  // Gestione Modali (invariata)
   const [modalState, setModalState] = useState<ModalState>({
     type: null,
     data: null,
   });
 
-  // --- Mutazione per Eliminazione ---
+  // Mutazione per Eliminazione (invariata)
   const mutation = useMutation({
     mutationFn: async (apartmentId: number) => {
       await apiRequest("DELETE", `/api/apartments/${apartmentId}`);
     },
     onSuccess: () => {
-      // Invalida sia la query per data specifica che quella generale
       queryClient.invalidateQueries({
         queryKey: [`/api/apartments/date/${formattedDate}`],
       });
       queryClient.invalidateQueries({ queryKey: ["/api/apartments"] });
-      // Invalida anche calendario e statistiche
       queryClient.invalidateQueries({
         predicate: (query) =>
           typeof query.queryKey[0] === "string" &&
@@ -104,22 +94,15 @@ export default function CalendarDay() {
     },
   });
 
-  // === INIZIO MODIFICA: AGGIORNAMENTO OTTIMISTICO ===
+  // Mutazione Toggle Favorite (invariata)
   const toggleFavoriteMutation = useMutation({
     mutationFn: async (apartmentId: number) => {
       return apiRequest("PATCH", `/api/apartments/${apartmentId}/toggle-favorite`);
     },
-    
     onMutate: async (apartmentId: number) => {
       const queryKey = [`/api/apartments/date/${formattedDate}`];
-      
-      // 1. Annulla query
       await queryClient.cancelQueries({ queryKey });
-
-      // 2. Salva snapshot
       const previousApartments = queryClient.getQueryData<ApartmentWithAssignedEmployees[]>(queryKey);
-
-      // 3. Aggiorna ottimisticamente
       if (previousApartments) {
         queryClient.setQueryData<ApartmentWithAssignedEmployees[]>(
           queryKey,
@@ -127,17 +110,14 @@ export default function CalendarDay() {
             if (!oldData) return [];
             return oldData.map((apartment) =>
               apartment.id === apartmentId
-                ? { ...apartment, is_favorite: !apartment.is_favorite } // Inverte il valore
+                ? { ...apartment, is_favorite: !apartment.is_favorite }
                 : apartment
             );
           }
         );
       }
-      // 4. Restituisci snapshot
       return { previousApartments, queryKey };
     },
-
-    // 5. Rollback in caso di errore
     onError: (err, variables, context) => {
       if (context?.previousApartments && context?.queryKey) {
         queryClient.setQueryData(context.queryKey, context.previousApartments);
@@ -148,19 +128,15 @@ export default function CalendarDay() {
         variant: "destructive",
       });
     },
-
-    // 6. Sincronizza alla fine
     onSettled: (data, error, variables, context) => {
-      // Invalida sia la query del giorno...
       if (context?.queryKey) {
         queryClient.invalidateQueries({ queryKey: context.queryKey });
       }
-      // ...sia la query generale della home
       queryClient.invalidateQueries({ queryKey: ["/api/apartments"] });
     },
   });
-  // === FINE MODIFICA ===
 
+  // Handler (invariati)
   const handleDelete = (apartment: ApartmentWithAssignedEmployees) => {
     setModalState({ type: "delete", data: apartment });
   };
@@ -171,7 +147,38 @@ export default function CalendarDay() {
     }
   };
 
-  // --- Ordinamento Ordini (invariato) ---
+  // === INIZIO MODIFICHE ===
+  /**
+   * Gestisce il click sull'icona "Aggiungi al Calendario".
+   */
+  const handleAddToCalendarClick = (
+    apartment: ApartmentWithAssignedEmployees
+  ) => {
+    if (!apartment.start_time) {
+      toast({
+        title: "Orario Mancante",
+        description: "Prima scegli un orario per l'ordine.",
+        variant: "destructive",
+      });
+      // Apriamo il modale di modifica per questo appartamento
+      setModalState({ type: "edit", data: apartment });
+    } else {
+      try {
+        const icsContent = generateICSContent(apartment);
+        downloadICSFile(apartment.name, icsContent);
+      } catch (error) {
+        console.error("Errore generazione ICS:", error);
+        toast({
+          title: "Errore Calendario",
+          description: "Impossibile generare il file per il calendario.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+  // === FINE MODIFICHE ===
+
+  // Ordinamento Ordini (invariato)
   const sortedApartments = apartments?.sort((a, b) => {
     if (a.start_time && b.start_time) {
       const timeComparison = a.start_time.localeCompare(b.start_time);
@@ -181,12 +188,10 @@ export default function CalendarDay() {
     }
     if (a.start_time) return -1;
     if (b.start_time) return 1;
-    
     return a.id - b.id;
   });
 
-  // --- Rendering ---
-
+  // Rendering (invariato)
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -202,7 +207,6 @@ export default function CalendarDay() {
       </div>
     );
   }
-
   if (error) {
     return (
       <div className="text-red-500 text-center">
@@ -214,13 +218,12 @@ export default function CalendarDay() {
   return (
     <>
       <div className="space-y-6">
-        {/* Header Pagina */}
+        {/* Header Pagina (invariato) */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center gap-4">
             <Button
               variant="outline"
               size="icon"
-              // L'hook navigate di wouter funziona correttamente qui
               onClick={() => navigate("/calendar")}
               aria-label="Torna al calendario"
             >
@@ -228,10 +231,9 @@ export default function CalendarDay() {
             </Button>
             <h1 className="text-2xl font-bold capitalize">{displayDate}</h1>
           </div>
-          {/* Bottone Aggiungi rimosso da qui e spostato in Fixed Action Button */}
         </div>
 
-        {/* Griglia Ordini */}
+        {/* Griglia Ordini (MODIFICATA) */}
         {sortedApartments && sortedApartments.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {sortedApartments.map((apartment) => (
@@ -243,6 +245,9 @@ export default function CalendarDay() {
                 onToggleFavorite={() =>
                   toggleFavoriteMutation.mutate(apartment.id)
                 }
+                // === INIZIO MODIFICHE ===
+                onAddToCalendarClick={() => handleAddToCalendarClick(apartment)}
+                // === FINE MODIFICHE ===
                 onStatusChange={() => {
                   queryClient.invalidateQueries({
                     queryKey: [`/api/apartments/date/${formattedDate}`],
@@ -268,7 +273,7 @@ export default function CalendarDay() {
           </div>
         )}
 
-        {/* Modali */}
+        {/* Modali (invariati) */}
         <ApartmentModal
           isOpen={modalState.type === "add" || modalState.type === "edit"}
           onClose={() => setModalState({ type: null, data: null })}
@@ -284,7 +289,7 @@ export default function CalendarDay() {
         />
       </div>
 
-      {/* Bottone Fluttuante per Aggiungere */}
+      {/* Bottone Fluttuante per Aggiungere (invariato) */}
       <Button
         onClick={() => setModalState({ type: "add", data: null })}
         className="fixed z-40 right-6 bottom-6 h-14 w-14 rounded-full shadow-lg"

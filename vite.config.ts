@@ -3,29 +3,24 @@ import react from "@vitejs/plugin-react";
 import themePlugin from "@replit/vite-plugin-shadcn-theme-json";
 import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
-// === INIZIO MODIFICA ===
-// Importa il plugin per copiare file statici
 import { viteStaticCopy } from "vite-plugin-static-copy";
-// === FINE MODIFICA ===
 
 export default defineConfig({
   plugins: [
     react(),
     runtimeErrorOverlay(),
     themePlugin(),
-    // === INIZIO MODIFICA ===
-    // Aggiungi il plugin qui
     viteStaticCopy({
       targets: [
         {
-          // Copia il service worker dalla sua posizione originale...
-          src: path.resolve(import.meta.dirname, "client/sw.js"),
-          // ...direttamente nella cartella di output della build
+          // === INIZIO MODIFICA ===
+          // Correggi il percorso: da 'client/sw.js' a 'client/public/sw.js'
+          src: path.resolve(import.meta.dirname, "client/public/sw.js"),
+          // === FINE MODIFICA ===
           dest: ".",
         },
       ],
     }),
-    // === FINE MODIFICA ===
     ...(process.env.NODE_ENV !== "production" &&
     process.env.REPL_ID !== undefined
       ? [

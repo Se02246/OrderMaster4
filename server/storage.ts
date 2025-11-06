@@ -429,8 +429,8 @@ export class DatabaseStorage implements IStorage {
     const earningsMonthQuery = await db
       .select({
         month_key: monthSqlExpression,
-        // === CORREZIONE DEFINITIVA: Rimosso il backslash (\) errato ===
-        total_earnings: sql<string>`SUM(${apartments.price})`.mapWith(Number)
+        // === CORREZIONE BUILD: Rimosso il backslash (\) errato ===
+        total_earnings: sql<string>\`SUM(${apartments.price})\`.mapWith(Number)
       })
       .from(apartments)
       .where(and(

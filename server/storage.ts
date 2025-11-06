@@ -14,7 +14,7 @@ import {
   type Assignment,
   type InsertAssignment,
   type ApartmentWithAssignedEmployees,
-  type EmployeeWithAssignedApartments,
+  type EmployeeWithAssignedEmployees,
 } from "@shared/schema";
 
 // Definiamo i nuovi tipi per le statistiche
@@ -31,6 +31,13 @@ type OrdersByTime = {
   month?: string;
   count: number;
 };
+// === INIZIO MODIFICA ===
+type EarningsByTime = {
+  day?: string;
+  month?: string;
+  earnings: number;
+};
+// === FINE MODIFICA ===
 type MostProductiveMonth = {
   month: string;
   count: number;
@@ -41,6 +48,9 @@ type StatisticsData = {
   busiestDays: ProductiveDay[];
   ordersPerDayInMonth: OrdersByTime[];
   ordersPerMonthInYear: OrdersByTime[];
+  // === INIZIO MODIFICA ===
+  earningsPerMonthInYear: EarningsByTime[];
+  // === FINE MODIFICA ===
   mostProductiveMonth: MostProductiveMonth;
 };
 
@@ -59,7 +69,7 @@ export interface IStorage {
   deleteApartment(userId: number, id: number): Promise<void>;
 
   // Employee operations
-  getEmployees(userId: number, options?: { search?: string }): Promise<EmployeeWithAssignedApartments[]>;
+  getEmployees(userId: number, options?: { search?: string }): Promise<EmployeeWithAssignedEmployees[]>;
   getEmployee(userId: number, id: number): Promise<EmployeeWithAssignedEmployees | undefined>;
   createEmployee(userId: number, employee: InsertEmployee): Promise<Employee>;
   deleteEmployee(userId: number, id: number): Promise<void>;
@@ -411,6 +421,31 @@ export class DatabaseStorage implements IStorage {
       (max, month) => month.count > max.count ? month : max, 
       ordersPerMonthInYear[0] || { month: format(new Date(selectedYear, 0, 1), "yyyy-MM"), count: 0 }
     );
+    
+    // === INIZIO MODIFICA: 5B. Guadagni per Mese (Totali) ===
+    // Somma i prezzi di TUTTI gli ordini, indipendentemente dallo stato di pagamento.
+    const earningsMonthQuery = await db
+      .select({
+        month_key: monthSqlExpression,
+        // === CORREZIONE: Rimosso il backslash (\) errato ===
+        total_earnings: sql<string>\`SUM(${apartments.price})`.mapWith(Number)
+      })
+      .from(apartments)
+      .where(and(
+        eq(apartments.user_id, userId),
+        sql`${apartments.cleaning_date} >= ${yearStart}`,
+        sql`${apartments.cleaning_date} <= ${yearEnd}`
+      ))
+      .groupBy(monthSqlExpression);
+
+    const earningsMonthMap = new Map(earningsMonthQuery.map(m => [m.month_key, m.total_earnings || 0]));
+    
+    const earningsPerMonthInYear: EarningsByTime[] = monthsInYear.map(month => ({
+      month,
+      earnings: Number(earningsMonthMap.get(month) || 0)
+    }));
+    // === FINE MODIFICA ===
+
 
     // 6. Ordini per Giorno (Usa il mese/anno dalle opzioni)
     // Esegui il parsing della stringa "YYYY-MM"
@@ -452,6 +487,7 @@ export class DatabaseStorage implements IStorage {
       busiestDays,
       ordersPerDayInMonth,
       ordersPerMonthInYear,
+      earningsPerMonthInYear, // <-- Aggiunto al ritorno
       mostProductiveMonth
     };
   }

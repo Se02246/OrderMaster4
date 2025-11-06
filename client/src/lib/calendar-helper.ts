@@ -20,19 +20,22 @@ function formatICSDate(date: Date): string {
 export function generateICSContent(apartment: ApartmentWithAssignedEmployees): string {
   
   // 1. Costruisci la data di inizio
+  // Combina la data (YYYY-MM-DD) e l'ora (HH:MM)
   const localDateTimeString = `${apartment.cleaning_date} ${apartment.start_time}`;
   
   // 2. Analizza la stringa come data/ora LOCALE
+  // 'parse' di date-fns usa il fuso orario del browser.
   const localDate = parse(localDateTimeString, "yyyy-MM-dd HH:mm", new Date());
   
   // 3. Calcola la data di fine (assumiamo 1 ora di durata)
   const localEndDate = addHours(localDate, 1);
 
   // 4. Formatta le date per il file
+  // formatICSDate convertirà automaticamente da locale a UTC.
   const icsStartDate = formatICSDate(localDate);
   const icsEndDate = formatICSDate(localEndDate);
 
-  // 5. Crea la descrizione (invariato)
+  // 5. Crea la descrizione
   let description = "";
   if (apartment.notes) {
     description += `Note: ${apartment.notes.replace(/\n/g, "\\n")}`;
@@ -49,10 +52,10 @@ export function generateICSContent(apartment: ApartmentWithAssignedEmployees): s
      description += `\\n\\nPrezzo: ${apartment.price} €`;
   }
 
-  // 6. Crea un UID univoco (invariato)
+  // 6. Crea un UID univoco
   const uid = `apartment-${apartment.id}-${Date.now()}@gestoreordini.app`;
 
-  // 7. Assembla il file .ics (invariato)
+  // 7. Assembla il file .ics
   const icsContent = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
@@ -61,43 +64,36 @@ export function generateICSContent(apartment: ApartmentWithAssignedEmployees): s
     "BEGIN:VEVENT",
     `UID:${uid}`,
     `DTSTAMP:${formatICSDate(new Date())}`, 
-    `DTSTART:${icsStartDate}`, 
-    `DTEND:${icsEndDate}`,     
+    `DTSTART:${icsStartDate}`,
+    `DTEND:${icsEndDate}`,
     `SUMMARY:${apartment.name}`, 
     `DESCRIPTION:${description}`, 
     "END:VEVENT",
     "END:VCALENDAR",
-  ].join("\r\n"); // <-- CORRETTO (era "\r_ \n" prima)
+  ].join("\r\n");
 
   return icsContent;
 }
 
 /**
  * === SEZIONE MODIFICATA ===
- * Tenta di APRIRE l'evento .ics direttamente, invece di scaricarlo.
+ * Tenta di APRIRE l'evento .ics direttamente usando un Data URI
+ * e navigando la pagina ad esso.
  * @param icsContent Il contenuto generato da generateICSContent.
  */
 export function downloadICSFile(icsContent: string) {
   
-  // 1. Crea il file in memoria (Blob) con il MIME type corretto
-  // che i telefoni riconoscono per "aprire".
-  const blob = new Blob([icsContent], { type: "text/calendar" });
-  
-  // 2. Crea un URL per questo file in memoria
-  const url = URL.createObjectURL(blob);
+  // Crea un Data URI. Questo è come un "file" incorporato in un link.
+  const dataUri = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(icsContent);
 
-  // 3. Usa window.open() per dire al browser "Apri questo URL".
-  // Se il browser (specialmente su mobile) riconosce "text/calendar",
-  // chiederà all'app calendario di aprirlo.
-  // Su PC desktop, potrebbe comunque scaricarlo se non ha un'app associata.
-  window.open(url);
-
-  // 4. Rilascia l'URL dalla memoria dopo un breve ritardo.
-  // Non possiamo rilasciarlo subito, altrimenti window.open fallisce.
-  setTimeout(() => {
-    URL.revokeObjectURL(url);
-  }, 1000); // 1 secondo è più che sufficiente
+  // Tenta di navigare la finestra corrente verso il Data URI.
+  // Su iOS e Android, questo viene intercettato dal sistema
+  // che chiede all'utente se vuole aprire l'app Calendario.
+  // Su desktop, probabilmente scaricherà ancora il file,
+  // ma questo è il massimo che possiamo fare senza violare la sicurezza del browser.
+  try {
+     window.location.href = dataUri;
+  } catch (e) {
+     console.error("Impossibile aprire il link del calendario", e);
+  }
 }
-
-// Nota: Abbiamo rimosso 'apartmentName' perché window.open()
-// non usa il nome del file.

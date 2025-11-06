@@ -10,7 +10,6 @@ import {
   CreditCard,
   Calendar,
   Euro,
-  // CaseSensitive, // Rimosso perché non più usato
   ArrowUp,
   ArrowDown,
 } from "lucide-react";
@@ -28,6 +27,9 @@ import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+// === INIZIO MODIFICHE ===
+import { generateICSContent, downloadICSFile } from "@/lib/calendar-helper";
+// === FINE MODIFICHE ===
 
 // Definizioni Tipi (invariate)
 type OrderStatus = Apartment["status"];
@@ -40,6 +42,7 @@ type SortMode =
   | "name_asc"
   | "name_desc";
 
+// Funzione safeFormatDate (invariata)
 const safeFormatDate = (dateString: string | null | undefined) => {
   if (!dateString) return "";
   try {
@@ -143,6 +146,7 @@ export default function Home() {
     },
   });
 
+  // Handler (invariati)
   const handleDelete = (apartment: ApartmentWithAssignedEmployees) => {
     setModalState({ type: "delete", data: apartment });
   };
@@ -153,7 +157,6 @@ export default function Home() {
     }
   };
 
-  // Handler filtri (invariati)
   const handleFavoriteFilterChange = () => {
     setFavoriteFilter((prev) => (prev === null ? true : null));
   };
@@ -177,7 +180,6 @@ export default function Home() {
     });
   };
 
-  // Handler ordinamento (invariato)
   const handleSortChange = () => {
     setSortMode((prev) => {
       switch (prev) {
@@ -199,13 +201,45 @@ export default function Home() {
     });
   };
 
-  // === FUNZIONE RENDER PILLOLA ORDINAMENTO (MODIFICATA) ===
+  // === INIZIO MODIFICHE ===
+  /**
+   * Gestisce il click sull'icona "Aggiungi al Calendario".
+   */
+  const handleAddToCalendarClick = (
+    apartment: ApartmentWithAssignedEmployees
+  ) => {
+    // 1. Controlla se l'orario è impostato
+    if (!apartment.start_time) {
+      // 2. Se manca l'orario, mostra un avviso e apri il modal di modifica
+      toast({
+        title: "Orario Mancante",
+        description: "Prima scegli un orario per l'ordine.",
+        variant: "destructive",
+      });
+      setModalState({ type: "edit", data: apartment });
+    } else {
+      // 3. Se l'orario c'è, genera e scarica il file .ics
+      try {
+        const icsContent = generateICSContent(apartment);
+        downloadICSFile(apartment.name, icsContent);
+      } catch (error) {
+        console.error("Errore generazione ICS:", error);
+        toast({
+          title: "Errore Calendario",
+          description: "Impossibile generare il file per il calendario.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+  // === FINE MODIFICHE ===
+
+  // Funzione renderSortButtonContent (invariata)
   const renderSortButtonContent = () => {
     const [key, direction] = sortMode.split("_") as [
       "date" | "price" | "name",
       "asc" | "desc",
     ];
-
     const iconProps = { size: 16, className: "flex-shrink-0" };
     const arrow =
       direction === "asc" ? (
@@ -213,27 +247,21 @@ export default function Home() {
       ) : (
         <ArrowDown {...iconProps} />
       );
-
     let icon;
-
     if (key === "date") {
       icon = <Calendar {...iconProps} />;
     } else if (key === "price") {
       icon = <Euro {...iconProps} />;
     } else {
-      // 'name'
-      // Sostituisce l'icona con il testo "AZ" o "ZA"
       icon = (
         <span
           className="font-semibold"
-          // Stile inline per forzare la dimensione e l'allineamento
           style={{ fontSize: "16px", lineHeight: "1" }}
         >
           {direction === "asc" ? "AZ" : "ZA"}
         </span>
       );
     }
-
     return (
       <>
         {icon}
@@ -241,13 +269,10 @@ export default function Home() {
       </>
     );
   };
-  // === FINE ===
 
   // Logica filtri e ordinamento (invariata)
   const processedAppointments = useMemo(() => {
     const search = searchTerm.toLowerCase();
-
-    // 1. Filtra per ricerca
     const filteredBySearch = (apartments || []).filter((apartment) => {
       if (!search) return true;
       const cleaningDate = safeFormatDate(apartment.cleaning_date);
@@ -265,8 +290,6 @@ export default function Home() {
         field ? field.toLowerCase().includes(search) : false
       );
     });
-
-    // 2. Filtra per pillole
     const filteredByAll = filteredBySearch.filter((apartment) => {
       if (
         favoriteFilter !== null &&
@@ -282,8 +305,6 @@ export default function Home() {
       }
       return true;
     });
-
-    // 3. Ordina
     const sorted = filteredByAll.sort((a, b) => {
       switch (sortMode) {
         case "date_asc":
@@ -334,7 +355,6 @@ export default function Home() {
           return 0;
       }
     });
-
     return sorted;
   }, [
     apartments,
@@ -361,7 +381,6 @@ export default function Home() {
       </div>
     );
   }
-
   if (error) {
     return (
       <div className="text-red-500 text-center">
@@ -389,7 +408,6 @@ export default function Home() {
 
         {/* Pillole di filtro e ordinamento (invariate) */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* Filtro Preferiti */}
           <Button
             variant="outline"
             size="sm"
@@ -412,8 +430,6 @@ export default function Home() {
             />
             Preferiti
           </Button>
-
-          {/* Filtro Stato Ordine */}
           <Button
             variant="outline"
             size="sm"
@@ -432,8 +448,6 @@ export default function Home() {
             <ClipboardList size={16} />
             {statusFilter || "Stato Ordine"}
           </Button>
-
-          {/* Filtro Pagamento */}
           <Button
             variant="outline"
             size="sm"
@@ -450,8 +464,6 @@ export default function Home() {
             <CreditCard size={16} />
             {paymentFilter || "Pagamento"}
           </Button>
-
-          {/* Pillola Ordinamento (invariata) */}
           <Button
             variant="outline"
             size="sm"
@@ -462,9 +474,8 @@ export default function Home() {
             {renderSortButtonContent()}
           </Button>
         </div>
-        {/* === FINE PILLOLE === */}
 
-        {/* Griglia Card (invariata) */}
+        {/* Griglia Card (MODIFICATA) */}
         {processedAppointments && processedAppointments.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {processedAppointments.map((apartment) => (
@@ -476,6 +487,9 @@ export default function Home() {
                 onToggleFavorite={() =>
                   toggleFavoriteMutation.mutate(apartment.id)
                 }
+                // === INIZIO MODIFICHE ===
+                onAddToCalendarClick={() => handleAddToCalendarClick(apartment)}
+                // === FINE MODIFICHE ===
                 onStatusChange={() =>
                   queryClient.invalidateQueries({
                     queryKey: ["/api/apartments"],

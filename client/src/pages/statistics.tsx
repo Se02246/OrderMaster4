@@ -1,10 +1,9 @@
 // === INIZIO MODIFICA ===
 import { useState } from "react";
-// === FINE MODIFICA ===
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-// === INIZIO MODIFICA ===
-import { ClipboardList, Trophy, CalendarClock, Zap, Euro } from "lucide-react"; // Aggiunto Euro
+// === INIZIO MODIFICA: Aggiunto Euro ===
+import { ClipboardList, Trophy, CalendarClock, Zap, Euro } from "lucide-react";
 // === FINE MODIFICA ===
 import { formatDateForDisplay } from "@/lib/date-utils";
 import {
@@ -21,14 +20,22 @@ import {
   ChartContainer,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-// === INIZIO MODIFICA ===
 import { format, parse } from "date-fns";
 import { it } from "date-fns/locale";
 // Nuovi import per i selettori
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Skeleton } from "@/components/ui/skeleton";
+// === INIZIO MODIFICA (Aggiunta import Button) ===
+import { Button } from "@/components/ui/button";
 // === FINE MODIFICA ===
+
 
 // Definisco i nuovi tipi per i dati
 type TopEmployee = {
@@ -47,7 +54,7 @@ type OrdersByTime = {
   count: number;
 };
 
-// === INIZIO MODIFICA ===
+// === INIZIO MODIFICA: Aggiunto tipo per Guadagni ===
 type EarningsByTime = {
   day?: string;
   month?: string;
@@ -66,312 +73,402 @@ type StatisticsData = {
   busiestDays: ProductiveDay[];
   ordersPerDayInMonth: OrdersByTime[];
   ordersPerMonthInYear: OrdersByTime[];
-  // === INIZIO MODIFICA ===
+  // === INIZIO MODIFICA: Aggiunto campo Guadagni ===
   earningsPerMonthInYear: EarningsByTime[];
   // === FINE MODIFICA ===
   mostProductiveMonth: MostProductiveMonth;
 };
 
-// Funzione helper per l'API
-async function fetchStatistics(year: number, monthYear: string): Promise<StatisticsData> {
-  const res = await fetch(`/api/statistics?year=${year}&monthYear=${monthYear}`);
-  if (!res.ok) {
-    throw new Error("Errore nel caricamento delle statistiche");
-  }
-  return res.json();
-}
-
-// === INIZIO MODIFICA: Configurazione Grafici (spostata su per chiarezza) ===
-const ordersByMonthConfig = {
-  count: { label: "Ordini", color: "hsl(var(--chart-1))" },
+// Configurazione per i grafici
+const ordersChartConfig = { // Rinominato per chiarezza
+  ordini: {
+    label: "Ordini",
+    color: "hsl(var(--primary))", // Usa il colore primario
+  },
 } satisfies ChartConfig;
 
-const ordersByDayConfig = {
-  count: { label: "Ordini", color: "hsl(var(--chart-2))" },
+// === INIZIO MODIFICA: Configurazione per Guadagni e Formatter ===
+const earningsChartConfig = {
+  guadagni: {
+    label: "Guadagni",
+    color: "hsl(var(--chart-3))", // Un colore diverso (es. verde)
+  },
 } satisfies ChartConfig;
 
-const earningsByMonthConfig = {
-  earnings: { label: "Guadagni", color: "hsl(var(--chart-3))" },
-} satisfies ChartConfig;
+// Helper per formattare in Euro
+const formatCurrency = (value: number) => `€\${value.toLocaleString('it-IT', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 // === FINE MODIFICA ===
 
+// Formatta il mese "YYYY-MM" in "MMM" (es. "Gen")
+const formatMonthAbbr = (dateStr: string) => {
+  try {
+    const date = parse(dateStr, "yyyy-MM", new Date());
+    return format(date, "MMM", { locale: it });
+  } catch (e) {
+    return dateStr;
+  }
+};
 
-// === CORREZIONE ERRORE BUILD: Aggiunto "default" all'esportazione ===
-export default function StatisticsPage() {
-  
-  // === INIZIO MODIFICA: Stati per i selettori globali ===
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState(format(new Date(), "yyyy-MM"));
+// Formatta il giorno "YYYY-MM-DD" in "dd" (es. "01")
+const formatDay = (dateStr: string) => {
+  try {
+    const date = parse(dateStr, "yyyy-MM-dd", new Date());
+    return format(date, "dd");
+  } catch (e) {
+    return dateStr;
+  }
+};
+
+// Formatta il mese "YYYY-MM" in "Mese Anno" (es. "Novembre 2023")
+const formatMonthYear = (dateStr: string) => {
+  try {
+    const date = parse(dateStr, "yyyy-MM", new Date());
+    return format(date, "MMMM yyyy", { locale: it });
+  } catch (e) {
+    return dateStr;
+  }
+};
+
+
+export default function Statistics() {
+  // === INIZIO MODIFICA ===
+  // Stato per i selettori di data
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  // === INIZIO MODIFICA (Stato temporaneo per input) ===
+  const [tempYear, setTempYear] = useState<number>(new Date().getFullYear());
+  // === FINE MODIFICA ===
+  const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), "yyyy-MM"));
+
+  // === INIZIO MODIFICA (Rimozione limite 5 anni) ===
+  // // Genera lista di anni per il dropdown (es. 5 anni indietro)
+  // const availableYears = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
   // === FINE MODIFICA ===
 
-  const { data, isLoading, error } = useQuery<StatisticsData, Error>({
-    queryKey: ["statistics", selectedYear, selectedMonth], // Aggiunti stati alla queryKey
-    queryFn: () => fetchStatistics(selectedYear, selectedMonth), // Passa gli stati alla fetch
-    staleTime: 1000 * 60 * 5, // 5 minuti
+  // Aggiorna la query per includere gli stati (ora usa selectedYear, che non cambia con l'input)
+  const { data: stats, isLoading, isError } = useQuery<StatisticsData>({
+    queryKey: [\`/api/statistics?year=${selectedYear}&monthYear=${selectedMonth}\`],
   });
-
-  // === INIZIO MODIFICA: Preparazione dati per i grafici ===
-  // Dati per Ordini per Mese (Annuale)
-  const ordersByMonthData = data?.ordersPerMonthInYear.map(item => ({
-    ...item,
-    monthDisplay: format(parse(item.month!, "yyyy-MM", new Date()), "MMM", { locale: it }),
-  })) || [];
-
-  // Dati per Ordini per Giorno (Mensile)
-  const ordersByDayData = data?.ordersPerDayInMonth.map(item => ({
-    ...item,
-    dayDisplay: format(parse(item.day!, "yyyy-MM-dd", new Date()), "d", { locale: it }),
-  })) || [];
-
-  // Dati per Guadagni per Mese (Annuale)
-  const earningsByMonthData = data?.earningsPerMonthInYear.map(item => ({
-    ...item,
-    monthDisplay: format(parse(item.month!, "yyyy-MM", new Date()), "MMM", { locale: it }),
-  })) || [];
-  
-  // Formattatore per valuta
-  const formatCurrency = (value: number) => {
-    return `€${value.toLocaleString('it-IT', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-  };
   // === FINE MODIFICA ===
 
-
-  if (error) {
-    return <div className="text-red-500 p-4">Errore: {error.message}</div>;
+  if (isLoading) {
+    return (
+      <div className="text-center py-8">
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <p className="mt-2 text-gray-600">Caricamento statistiche...</p>
+      </div>
+    );
   }
 
+  if (isError || !stats) {
+    return (
+      <div className="text-center py-8 bg-white rounded-lg shadow">
+        <i className="fas fa-exclamation-triangle text-red-500 text-5xl mb-4"></i>
+        <h3 className="text-xl font-medium text-gray-700 mb-2">Errore</h3>
+        <p className="text-gray-500">Impossibile caricare le statistiche.</p>
+      </div>
+    );
+  }
+
+  // Prepara i dati per i grafici
+  const dayData = stats.ordersPerDayInMonth.map(d => ({
+    day: formatDay(d.day!), // 'day' è sicuramente presente qui
+    ordini: d.count,
+  }));
+
+  const monthData = stats.ordersPerMonthInYear.map(m => ({
+    month: formatMonthAbbr(m.month!), // 'month' è sicuramente presente qui
+    ordini: m.count,
+  }));
+
+  // === INIZIO MODIFICA: Preparazione dati per Guadagni ===
+  const earningsData = stats.earningsPerMonthInYear.map(m => ({
+    month: formatMonthAbbr(m.month!), 
+    guadagni: m.earnings,
+  }));
+  // === FINE MODIFICA ===
+
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-6">Statistiche</h1>
+    <div className="space-y-6">
+      <h2 className="text-2xl font-semibold text-dark">Statistiche</h2>
 
-      {/* === INIZIO MODIFICA: Selettori globali === */}
-      <Card className="mb-6">
-        <CardContent className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="year-selector">Seleziona Anno (per grafici annuali)</Label>
-              <Input
-                id="year-selector"
-                type="number"
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(Number(e.target.value))}
-                placeholder="Es. 2024"
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <Label htmlFor="month-selector">Seleziona Mese (per grafico giornaliero)</Label>
-              <Input
-                id="month-selector"
-                type="month"
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className="mt-1"
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-      {/* === FINE MODIFICA === */}
-
-
-      {/* Sezione Card Superiori */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {/* Griglia Metriche */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Ordini Totali */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Ordini Totali</CardTitle>
             <ClipboardList className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {isLoading ? <Skeleton className="h-8 w-1/4" /> : <div className="text-2xl font-bold">{data?.totalOrders}</div>}
+            <div className="text-2xl font-bold">{stats.totalOrders}</div>
+            <p className="text-xs text-muted-foreground">Totale ordini registrati</p>
           </CardContent>
         </Card>
-
+        
+        {/* Mese Più Produttivo (Ora basato sull'anno selezionato) */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Top Collaboratori</CardTitle>
-            <Trophy className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-4 w-3/4" />
-              </div>
-            ) : (
-              <ul className="text-sm">
-                {data?.topEmployees.map((emp, index) => (
-                  <li key={index} className="flex justify-between">
-                    <span>{index + 1}. {emp.name || 'N/D'}</span>
-                    <span className="font-bold">{emp.count}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Giorni più Produttivi</CardTitle>
-            <CalendarClock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-4 w-3/4" />
-              </div>
-            ) : (
-              <ul className="text-sm">
-                {data?.busiestDays.map((day, index) => (
-                  <li key={index} className="flex justify-between">
-                    <span>{formatDateForDisplay(day.date)}</span>
-                    <span className="font-bold">{day.count}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Mese più Produttivo ({selectedYear})</CardTitle>
+            <CardTitle className="text-sm font-medium">Mese Produttivo ({selectedYear})</CardTitle>
             <Zap className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {isLoading ? (
-              <Skeleton className="h-8 w-3/4" />
+            {stats.mostProductiveMonth.count > 0 ? (
+              <>
+                <div className="text-2xl font-bold">{stats.mostProductiveMonth.count} ordini</div>
+                <p className="text-xs text-muted-foreground">
+                  in {formatMonthYear(stats.mostProductiveMonth.month)}
+                </p>
+              </>
             ) : (
-              <div className="text-2xl font-bold">
-                {data?.mostProductiveMonth?.month ? 
-                  format(parse(data.mostProductiveMonth.month, "yyyy-MM", new Date()), "MMMM", { locale: it }) 
-                  : 'N/D'}
-                ({data?.mostProductiveMonth?.count} ordini)
-              </div>
+               <p className="text-sm text-muted-foreground">Nessun dato per il {selectedYear}.</p>
             )}
           </CardContent>
         </Card>
-      </div>
 
-      {/* Sezione Grafici */}
-      {/* === INIZIO MODIFICA: Layout griglia aggiornato e grafici === */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2 mt-4">
-        
-        {/* Grafico 1: Ordini per Mese (Annuale) */}
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            {/* Titolo aggiornato dinamicamente */}
-            <CardTitle>Ordini per Mese (Anno: {selectedYear})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <Skeleton className="h-[300px] w-full" />
-            ) : (
-              <ChartContainer config={ordersByMonthConfig} className="h-[300px] w-full">
-                <LineChart data={ordersByMonthData} margin={{ left: 12, right: 12, top: 5, bottom: 5 }}>
-                  <CartesianGrid vertical={false} />
-                  <XAxis
-                    dataKey="monthDisplay"
-                    tickLine={false}
-                    axisLine={false}
-                    tickMargin={8}
-                  />
-                  <YAxis allowDecimals={false} />
-                  <ChartTooltipContent />
-                  <Line
-                    dataKey="count"
-                    type="monotone"
-                    stroke="var(--color-count)"
-                    strokeWidth={2}
-                    dot={false}
-                  />
-                </LineChart>
-              </ChartContainer>
-            )}
-          </CardContent>
-        </Card>
-        
-        {/* Grafico 2: Ordini per Giorno (Mensile) */}
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            {/* Titolo aggiornato e selettori rimossi */}
-            <CardTitle>
-              Ordini per Giorno (Mese: {format(parse(selectedMonth, "yyyy-MM", new Date()), "MMMM yyyy", { locale: it })})
-            {/* === CORREZIONE ERRORE BUILD: Chiusura tag errata === */}
+        {/* Top 3 Clienti */}
+        <Card>
+          <CardHeader className="pb-2">
+            {/* === INIZIO CORREZIONE ERRORE BUILD === */}
+            <CardTitle className="text-base font-medium flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-yellow-500" />
+              Top 3 Clienti
             </CardTitle>
+            {/* === FINE CORREZIONE ERRORE BUILD === */}
           </CardHeader>
           <CardContent>
-            {isLoading ? (
-              <Skeleton className="h-[300px] w-full" />
+            {stats.topEmployees.length > 0 ? (
+              <ol className="list-decimal list-inside space-y-2">
+                {stats.topEmployees.map((employee, index) => (
+                  <li key={index} className="text-sm">
+                    <span className="font-medium">{employee.name || "Cliente non definito"}</span>
+                    <span className="text-muted-foreground"> ({employee.count} {employee.count === 1 ? 'ordine' : 'ordini'})</span>
+                  </li>
+                ))}
+              </ol>
             ) : (
-              <ChartContainer config={ordersByDayConfig} className="h-[300px] w-full">
-                <LineChart data={ordersByDayData} margin={{ left: 12, right: 12, top: 5, bottom: 5 }}>
-                  <CartesianGrid vertical={false} />
-                  <XAxis
-                    dataKey="dayDisplay"
-                    tickLine={false}
-                    axisLine={false}
-                    tickMargin={8}
-                  />
-                  <YAxis allowDecimals={false} />
-                  <ChartTooltipContent />
-                  <Line
-                    dataKey="count"
-                    type="monotone"
-                    stroke="var(--color-count)"
-                    strokeWidth={2}
-                    dot={false}
-                  />
-                </LineChart>
-              </ChartContainer>
+              <p className="text-sm text-muted-foreground">Nessun dato disponibile.</p>
             )}
           </CardContent>
         </Card>
 
-        {/* Grafico 3: Guadagni per Mese (Annuale) - NUOVO */}
-        <Card className="lg:col-span-2">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle>Guadagni Totali per Mese (Anno: {selectedYear})</CardTitle>
-            <Euro className="h-4 w-4 text-muted-foreground" />
+        {/* Top 3 Giorni Produttivi */}
+        <Card>
+          <CardHeader className="pb-2">
+            {/* === INIZIO CORREZIONE ERRORE BUILD === */}
+            <CardTitle className="text-base font-medium flex items-center gap-2">
+              <CalendarClock className="h-5 w-5 text-blue-500" />
+              Top 3 Giorni
+            </CardTitle>
+            {/* === FINE CORREZIONE ERRORE BUILD === */}
           </CardHeader>
           <CardContent>
-            {isLoading ? (
-              <Skeleton className="h-[300px] w-full" />
+            {stats.busiestDays.length > 0 ? (
+              <ol className="list-decimal list-inside space-y-2">
+                {stats.busiestDays.map((day, index) => (
+                  <li key={index} className="text-sm">
+                    <span className="font-medium">{formatDateForDisplay(day.date)}</span>
+                    <span className="text-muted-foreground"> ({day.count} {day.count === 1 ? 'ordine' : 'ordini'})</span>
+                  </li>
+                ))}
+              </ol>
             ) : (
-              <ChartContainer config={earningsByMonthConfig} className="h-[300px] w-full">
-                <LineChart data={earningsByMonthData} margin={{ left: 12, right: 12, top: 5, bottom: 5 }}>
-                  <CartesianGrid vertical={false} />
+               <p className="text-sm text-muted-foreground">Nessun dato disponibile.</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Griglia per i grafici */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        {/* Grafico Ordini per Giorno */}
+        <Card>
+          {/* === INIZIO MODIFICA === */}
+          <CardHeader>
+            <CardTitle>Ordini per Giorno ({formatMonthYear(selectedMonth)})</CardTitle>
+             <div className="w-full max-w-sm pt-2">
+               <Label htmlFor="month-picker" className="text-sm font-medium">Seleziona Mese</Label>
+               <Input
+                 id="month-picker"
+                 type="month"
+                 value={selectedMonth}
+                 onChange={(e) => setSelectedMonth(e.target.value)}
+                 className="mt-1"
+               />
+             </div>
+          </CardHeader>
+          {/* === FINE MODIFICA === */}
+          <CardContent>
+            <ChartContainer config={ordersChartConfig} className="h-[250px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={dayData}
+                  margin={{
+                    top: 5,
+                    right: 10,
+                    left: -20, 
+                    bottom: 5,
+                  }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
                   <XAxis
-                    dataKey="monthDisplay"
+                    dataKey="day"
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                    padding={{ left: 20, right: 20 }}
+                  />
+                  <YAxis
+                    domain={[3, 'auto']} // Minimo 3
+                    allowDecimals={false}
                     tickLine={false}
                     axisLine={false}
                     tickMargin={8}
                   />
-                  <YAxis 
-                    tickFormatter={formatCurrency}
-                  />
-                  <ChartTooltipContent 
-                    formatter={formatCurrency}
+                  <Tooltip
+                    cursor={false}
+                    content={<ChartTooltipContent indicator="line" />}
                   />
                   <Line
-                    dataKey="earnings"
+                    dataKey="ordini"
                     type="monotone"
-                    stroke="var(--color-earnings)"
+                    stroke="var(--color-ordini)"
                     strokeWidth={2}
                     dot={false}
                   />
                 </LineChart>
-              </ChartContainer>
-            )}
+              </ResponsiveContainer>
+            </ChartContainer>
           </CardContent>
         </Card>
+
+        {/* Grafico Ordini per Mese */}
+        <Card>
+          {/* === INIZIO MODIFICA === */}
+          <CardHeader>
+            <CardTitle>Ordini per Mese ({selectedYear})</CardTitle>
+            {/* === INIZIO MODIFICA: Layout per Input + Bottone === */}
+            <div className="w-full max-w-sm pt-2 space-y-2">
+              <Label htmlFor="year-picker" className="text-sm font-medium">Seleziona Anno</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="year-picker"
+                  type="number"
+                  placeholder="Inserisci anno"
+                  value={tempYear} // Usa stato temporaneo
+                  onChange={(e) => setTempYear(Number(e.target.value))} // Aggiorna stato temporaneo
+                  className="mt-1"
+                  step="1"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      setSelectedYear(tempYear);
+                    }
+                  }}
+                />
+                <Button onClick={() => setSelectedYear(tempYear)} className="mt-1">
+                  Applica
+                </Button>
+              </div>
+            </div>
+            {/* === FINE MODIFICA === */}
+          </CardHeader>
+          {/* === FINE MODIFICA === */}
+          <CardContent>
+            <ChartContainer config={ordersChartConfig} className="h-[250px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={monthData}
+                   margin={{
+                    top: 5,
+                    right: 10,
+                    left: -20,
+                    bottom: 5,
+                  }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis
+                    dataKey="month"
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                    padding={{ left: 20, right: 20 }}
+                  />
+                  <YAxis
+                    domain={[3, 'auto']} // Minimo 3
+                    allowDecimals={false}
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                  />
+                  <Tooltip
+                    cursor={false}
+                    content={<ChartTooltipContent indicator="line" />}
+                  />
+                  <Line
+                    dataKey="ordini"
+                    type="monotone"
+                    stroke="var(--color-ordini)"
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        {/* === INIZIO MODIFICA: Nuovo Grafico Guadagni === */}
+        <Card className="lg:col-span-2"> {/* Occupa due colonne per stare sotto */}
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+             <CardTitle className="text-sm font-medium">Guadagni Totali per Mese ({selectedYear})</CardTitle>
+             <Euro className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={earningsChartConfig} className="h-[250px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={earningsData}
+                  margin={{
+                    top: 5,
+                    right: 10,
+                    left: -20, // Allineato con gli altri grafici
+                    bottom: 5,
+                  }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis
+                    dataKey="month"
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                    padding={{ left: 20, right: 20 }}
+                  />
+                  <YAxis
+                    allowDecimals={false}
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                    tickFormatter={formatCurrency} // Formatta in €
+                  />
+                  <Tooltip
+                    cursor={false}
+                    content={<ChartTooltipContent indicator="line" formatter={formatCurrency} />} // Formatta in €
+                  />
+                  <Line
+                    dataKey="guadagni"
+                    type="monotone"
+                    stroke="var(--color-guadagni)"
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+        {/* === FINE MODIFICA === */}
 
       </div>
-      {/* === FINE MODIFICA === */}
     </div>
   );
 }

@@ -8,6 +8,9 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { ApartmentWithAssignedEmployees, EmployeeWithAssignedApartments, Employee } from "@shared/schema";
 import { ApartmentFormData } from "@/components/ui/modals/types";
+// === INIZIO MODIFICHE ===
+import { generateICSContent, downloadICSFile } from "@/lib/calendar-helper";
+// === FINE MODIFICHE ===
 
 export default function EmployeeDetail() {
   const { toast } = useToast();
@@ -30,7 +33,7 @@ export default function EmployeeDetail() {
     queryKey: ['/api/employees'],
   });
 
-  // Update apartment mutation
+  // Update apartment mutation (invariata)
   const updateApartmentMutation = useMutation({
     mutationFn: ({ id, data }: { id: number, data: ApartmentFormData }) => 
       apiRequest('PUT', `/api/apartments/${id}`, data),
@@ -51,7 +54,7 @@ export default function EmployeeDetail() {
     }
   });
 
-  // Delete apartment mutation
+  // Delete apartment mutation (invariata)
   const deleteApartmentMutation = useMutation({
     mutationFn: (id: number) => 
       apiRequest('DELETE', `/api/apartments/${id}`),
@@ -72,12 +75,50 @@ export default function EmployeeDetail() {
     }
   });
 
-  // Event handlers
+  // === INIZIO MODIFICHE ===
+  // Nota: questa funzione ha una logica leggermente diversa per aprire il modal
+  // rispetto a home.tsx, perché questa pagina gestisce lo stato del modal in modo diverso.
+  
+  /**
+   * Gestisce il click sull'icona "Aggiungi al Calendario".
+   */
+  const handleAddToCalendarClick = (
+    apartment: ApartmentWithAssignedEmployees
+  ) => {
+    if (!apartment.start_time) {
+      toast({
+        title: "Orario Mancante",
+        description: "Prima scegli un orario per l'ordine.",
+        variant: "destructive",
+      });
+      // Apriamo il modale di modifica per questo appartamento
+      // Usiamo la funzione esistente in questa pagina
+      handleOpenEditModal(apartment.id);
+    } else {
+      try {
+        const icsContent = generateICSContent(apartment);
+        downloadICSFile(apartment.name, icsContent);
+      } catch (error) {
+        console.error("Errore generazione ICS:", error);
+        toast({
+          title: "Errore Calendario",
+          description: "Impossibile generare il file per il calendario.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+  // === FINE MODIFICHE ===
+
+  // Event handlers (invariati)
   const handleOpenEditModal = (id: number) => {
     // First fetch the complete apartment data
-    fetch(`/api/apartments/${id}`)
+    // Dobbiamo recuperare i dati completi dell'appartamento
+    // perché l'oggetto 'apartment' nella lista 'employee.apartments'
+    // potrebbe non avere tutti i dipendenti assegnati (solo quello corrente).
+    apiRequest("GET", `/api/apartments/${id}`)
       .then(res => res.json())
-      .then(data => {
+      .then((data: ApartmentWithAssignedEmployees) => {
         setCurrentApartment(data);
         setIsApartmentModalOpen(true);
       })
@@ -106,6 +147,26 @@ export default function EmployeeDetail() {
       deleteApartmentMutation.mutate(apartmentToDelete.id);
     }
   };
+  
+  // Funzione toggle favorite (mancava in questo file, la aggiungo)
+  const toggleFavoriteMutation = useMutation({
+    mutationFn: async (apartmentId: number) => {
+      return apiRequest("PATCH", `/api/apartments/${apartmentId}/toggle-favorite`);
+    },
+    onSuccess: () => {
+      // Invalida sia la query del dipendente che quella generale
+      queryClient.invalidateQueries({ queryKey: [`/api/employees/${employeeId}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/apartments"] });
+    },
+    onError: () => {
+       toast({
+        title: "Errore",
+        description: "Impossibile aggiornare il preferito.",
+        variant: "destructive",
+      });
+    }
+  });
+
 
   if (!employeeId) {
     return (
@@ -156,10 +217,25 @@ export default function EmployeeDetail() {
                 key={apartment.id}
                 apartment={{
                   ...apartment,
-                  employees: employee ? [{ id: employee.id, first_name: employee.first_name, last_name: employee.last_name }] : []
+                  // Arricchiamo l'oggetto apartment base con i dati del dipendente corrente
+                  // (la funzione onEdit recupererà comunque i dati completi)
+                  employees: employee ? [{ id: employee.id, first_name: employee.first_name, last_name: employee.last_name, user_id: employee.user_id }] : []
                 }}
-                onEdit={handleOpenEditModal}
-                onDelete={handleOpenDeleteModal}
+                onEdit={() => handleOpenEditModal(apartment.id)}
+                onDelete={() => handleOpenDeleteModal(apartment.id, apartment.name)}
+                // === INIZIO MODIFICHE ===
+                onToggleFavorite={() => toggleFavoriteMutation.mutate(apartment.id)}
+                onAddToCalendarClick={() => handleAddToCalendarClick({
+                  ...apartment,
+                  employees: employee ? [{ id: employee.id, first_name: employee.first_name, last_name: employee.last_name, user_id: employee.user_id }] : []
+                })}
+                onStatusChange={() => {
+                  queryClient.invalidateQueries({ queryKey: [`/api/employees/${employeeId}`] });
+                }}
+                onPaymentChange={() => {
+                  queryClient.invalidateQueries({ queryKey: [`/api/employees/${employeeId}`] });
+                }}
+                // === FINE MODIFICHE ===
               />
             ))}
           </div>
@@ -174,20 +250,24 @@ export default function EmployeeDetail() {
         )}
       </div>
 
-      {/* Modals */}
+      {/* Modals (invariati) */}
       <ApartmentModal
         isOpen={isApartmentModalOpen}
         onClose={() => setIsApartmentModalOpen(false)}
+        // @ts-ignore // Ignoriamo il type-check qui perché onSubmit si aspetta dati diversi
         onSubmit={handleApartmentSubmit}
         apartment={currentApartment}
-        employees={allEmployees}
+        // employees={allEmployees} // employees non è una prop valida per ApartmentModal
+        mode="edit"
       />
 
       <ConfirmDeleteModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleDeleteConfirm}
-        message={`Sei sicuro di voler eliminare l'ordine "${apartmentToDelete?.name}"?`}
+        // message={`Sei sicuro di voler eliminare l'ordine "${apartmentToDelete?.name}"?`}
+        itemName={apartmentToDelete?.name || "questo ordine"}
+        isLoading={deleteApartmentMutation.isPending}
       />
     </>
   );

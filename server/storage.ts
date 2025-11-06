@@ -428,7 +428,7 @@ export class DatabaseStorage implements IStorage {
       .select({
         month_key: monthSqlExpression,
         // === CORREZIONE: Rimosso il backslash (\) errato ===
-        total_earnings: sql<string>\`SUM(${apartments.price})`.mapWith(Number)
+        total_earnings: sql<string>`SUM(${apartments.price})`.mapWith(Number)
       })
       .from(apartments)
       .where(and(

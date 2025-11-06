@@ -31,13 +31,15 @@ type OrdersByTime = {
   month?: string;
   count: number;
 };
-// === INIZIO MODIFICA ===
+
+// === INIZIO MODIFICA: Tipo per i guadagni ===
 type EarningsByTime = {
   day?: string;
   month?: string;
   earnings: number;
 };
 // === FINE MODIFICA ===
+
 type MostProductiveMonth = {
   month: string;
   count: number;
@@ -48,7 +50,7 @@ type StatisticsData = {
   busiestDays: ProductiveDay[];
   ordersPerDayInMonth: OrdersByTime[];
   ordersPerMonthInYear: OrdersByTime[];
-  // === INIZIO MODIFICA ===
+  // === INIZIO MODIFICA: Aggiunto campo per i guadagni ===
   earningsPerMonthInYear: EarningsByTime[];
   // === FINE MODIFICA ===
   mostProductiveMonth: MostProductiveMonth;
@@ -427,7 +429,7 @@ export class DatabaseStorage implements IStorage {
     const earningsMonthQuery = await db
       .select({
         month_key: monthSqlExpression,
-        // === CORREZIONE: Rimosso il backslash (\) errato ===
+        // === CORREZIONE DEFINITIVA: Rimosso il backslash (\) errato ===
         total_earnings: sql<string>`SUM(${apartments.price})`.mapWith(Number)
       })
       .from(apartments)

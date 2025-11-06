@@ -1,6 +1,8 @@
 import { ApartmentWithAssignedEmployees } from "@shared/schema";
 import { parse, format, addHours } from "date-fns";
-import { zonedTimeToUtc } from "date-fns-tz"; // Importiamo la funzione per la conversione del fuso orario
+// === MODIFICA QUESTA RIGA ===
+import { zonedTimeToUtc } from "date-fns-tz/esm"; // Aggiungi /esm alla fine
+// === FINE MODIFICA ===
 
 /**
  * Formatta una data per il formato ICS (UTC: YYYYMMDDTHHmmssZ).

@@ -1,7 +1,7 @@
 import { ApartmentWithAssignedEmployees } from "@shared/schema";
 import { parse, format, addHours } from "date-fns";
-// === MODIFICA QUESTA RIGA ===
-import { zonedTimeToUtc } from "date-fns-tz/esm"; // Aggiungi /esm alla fine
+// === 1. PRIMA MODIFICA: Cambia questa riga ===
+import * as dateFnsTz from "date-fns-tz";
 // === FINE MODIFICA ===
 
 /**
@@ -31,7 +31,9 @@ export function generateICSContent(apartment: ApartmentWithAssignedEmployees): s
   const localTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   
   // Converti l'ora locale in UTC per il file ICS (fondamentale!)
-  const utcStartDate = zonedTimeToUtc(localDate, localTimeZone);
+  // === 2. SECONDA MODIFICA: Aggiungi "dateFnsTz." qui ===
+  const utcStartDate = dateFnsTz.zonedTimeToUtc(localDate, localTimeZone);
+  // === FINE MODIFICA ===
   
   // 2. Calcola la data di fine (assumiamo 1 ora di durata)
   const utcEndDate = addHours(utcStartDate, 1);

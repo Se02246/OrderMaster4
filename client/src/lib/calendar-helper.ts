@@ -3,11 +3,13 @@ import { parse, format, addHours } from "date-fns";
 // NESSUNA importazione di date-fns-tz
 
 /**
- * Formatta una data per il formato ICS LOCALE (senza la 'Z' UTC).
+ * Formatta una data per il formato ICS (UTC: YYYYMMDDTHHmmssZ).
+ * La 'Z' alla fine del formato indica a 'format' di convertire
+ * la data (che è nel fuso orario locale) nel fuso orario UTC.
  */
 function formatICSDate(date: Date): string {
-  // 'yyyyMMdd'T'HHmmss' (SENZA la 'Z' alla fine)
-  return format(date, "yyyyMMdd'T'HHmmss'");
+  // 'yyyyMMdd'T'HHmmss'Z' è il formato standard UTC per ICS
+  return format(date, "yyyyMMdd'T'HHmmss'Z'");
 }
 
 /**
@@ -18,16 +20,24 @@ function formatICSDate(date: Date): string {
 export function generateICSContent(apartment: ApartmentWithAssignedEmployees): string {
   
   // 1. Costruisci la data di inizio
+  // Combina la data (YYYY-MM-DD) e l'ora (HH:MM)
   const localDateTimeString = `${apartment.cleaning_date} ${apartment.start_time}`;
   
   // 2. Analizza la stringa come data/ora LOCALE
+  // 'parse' di date-fns usa il fuso orario del browser.
+  // Es: "2025-11-10 14:00" in Italia (GMT+1) diventa un oggetto data
+  // che rappresenta "14:00 in GMT+1" (ovvero 13:00 UTC).
   const localDate = parse(localDateTimeString, "yyyy-MM-dd HH:mm", new Date());
+  
+  // 3. Calcola la data di fine (assumiamo 1 ora di durata)
+  const localEndDate = addHours(localDate, 1);
 
-  // 3. Formatta la data per il file (sarà in formato locale)
+  // 4. Formatta le date per il file
+  // formatICSDate convertirà automaticamente da locale a UTC.
   const icsStartDate = formatICSDate(localDate);
-  const icsStamp = formatICSDate(new Date()); // Timestamp di creazione
+  const icsEndDate = formatICSDate(localEndDate);
 
-  // 4. Crea la descrizione (invariato)
+  // 5. Crea la descrizione (invariato)
   let description = "";
   if (apartment.notes) {
     description += `Note: ${apartment.notes.replace(/\n/g, "\\n")}`;
@@ -44,11 +54,10 @@ export function generateICSContent(apartment: ApartmentWithAssignedEmployees): s
      description += `\\n\\nPrezzo: ${apartment.price} €`;
   }
 
-  // 5. Crea un UID univoco (invariato)
+  // 6. Crea un UID univoco (invariato)
   const uid = `apartment-${apartment.id}-${Date.now()}@gestoreordini.app`;
 
-  // === INIZIO MODIFICA ===
-  // 6. Assembla il file .ics (con i due allarmi)
+  // 7. Assembla il file .ics (invariato)
   const icsContent = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
@@ -56,50 +65,35 @@ export function generateICSContent(apartment: ApartmentWithAssignedEmployees): s
     "CALSCALE:GREGORIAN",
     "BEGIN:VEVENT",
     `UID:${uid}`,
-    `DTSTAMP:${icsStamp}`,
-    `DTSTART:${icsStartDate}`, // Orario dell'evento (es. 07:00)
+    `DTSTAMP:${formatICSDate(new Date())}`, 
+    `DTSTART:${icsStartDate}`, // Es: 20251110T130000Z
+    `DTEND:${icsEndDate}`,     // Es: 20251110T140000Z
     `SUMMARY:${apartment.name}`, 
-    `DESCRIPTION:${description}`,
-    
-    // --- Allarme 1 (30 minuti prima) ---
-    "BEGIN:VALARM",
-    "ACTION:DISPLAY",
-    `DESCRIPTION:${apartment.name} (fra 30 minuti)`,
-    "TRIGGER;RELATED=START:-PT30M", // 30 Minuti Prima
-    "END:VALARM",
-    
-    // --- Allarme 2 (All'ora dell'evento) ---
-    "BEGIN:VALARM",
-    "ACTION:DISPLAY",
-    `DESCRIPTION:${apartment.name} (Adesso)`,
-    "TRIGGER;RELATED=START:PT0M", // All'orario di inizio
-    "END:VALARM",
-    
+    `DESCRIPTION:${description}`, 
     "END:VEVENT",
     "END:VCALENDAR",
   ].join("\r\n");
-  // === FINE MODIFICA ===
 
   return icsContent;
 }
 
 /**
- * Tenta di APRIRE l'evento .ics direttamente, invece di scaricarlo.
+ * Avvia il download di un file .ics.
+ * @param apartmentName Il nome dell'evento, usato per il nome del file.
  * @param icsContent Il contenuto generato da generateICSContent.
  */
-export function downloadICSFile(icsContent: string) {
+export function downloadICSFile(apartmentName: string, icsContent: string) {
+  // Cambiato MIME type per maggiore compatibilità
+  const blob = new Blob([icsContent], { type: "text/calendar;charset=utf-8;" }); 
   
-  // 1. Crea il file in memoria (Blob)
-  const blob = new Blob([icsContent], { type: "text/calendar" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
   
-  // 2. Crea un URL per questo file in memoria
-  const url = URL.createObjectURL(blob);
-
-  // 3. Usa window.open() per dire al browser "Apri questo URL".
-  window.open(url);
-
-  // 4. Rilascia l'URL dalla memoria dopo un breve ritardo.
-  setTimeout(() => {
-    URL.revokeObjectURL(url);
-  }, 1000);
+  const fileName = `${apartmentName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.ics`;
+  
+  link.setAttribute("download", fileName);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(link.href);
 }

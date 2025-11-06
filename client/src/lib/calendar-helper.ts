@@ -28,6 +28,9 @@ export function generateICSContent(apartment: ApartmentWithAssignedEmployees): s
   // Es: "2025-11-10 14:00" in Italia (GMT+1) diventa un oggetto data
   // che rappresenta "14:00 in GMT+1" (ovvero 13:00 UTC).
   const localDate = parse(localDateTimeString, "yyyy-MM-dd HH:mm", new Date());
+  
+  // 3. Calcola la data di fine (assumiamo 1 ora di durata)
+  const localEndDate = addHours(localDate, 1);
 
   // 4. Formatta le date per il file
   // formatICSDate convertirà automaticamente da locale a UTC.
@@ -64,6 +67,7 @@ export function generateICSContent(apartment: ApartmentWithAssignedEmployees): s
     `UID:${uid}`,
     `DTSTAMP:${formatICSDate(new Date())}`, 
     `DTSTART:${icsStartDate}`, // Es: 20251110T130000Z
+    `DTEND:${icsEndDate}`,     // Es: 20251110T140000Z
     `SUMMARY:${apartment.name}`, 
     `DESCRIPTION:${description}`, 
     "END:VEVENT",

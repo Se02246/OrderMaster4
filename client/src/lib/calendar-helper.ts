@@ -20,20 +20,15 @@ function formatICSDate(date: Date): string {
 export function generateICSContent(apartment: ApartmentWithAssignedEmployees): string {
   
   // 1. Costruisci la data di inizio
-  // Combina la data (YYYY-MM-DD) e l'ora (HH:MM)
   const localDateTimeString = `${apartment.cleaning_date} ${apartment.start_time}`;
   
   // 2. Analizza la stringa come data/ora LOCALE
-  // 'parse' di date-fns usa il fuso orario del browser.
-  // Es: "2025-11-10 14:00" in Italia (GMT+1) diventa un oggetto data
-  // che rappresenta "14:00 in GMT+1" (ovvero 13:00 UTC).
   const localDate = parse(localDateTimeString, "yyyy-MM-dd HH:mm", new Date());
   
   // 3. Calcola la data di fine (assumiamo 1 ora di durata)
   const localEndDate = addHours(localDate, 1);
 
   // 4. Formatta le date per il file
-  // formatICSDate convertirà automaticamente da locale a UTC.
   const icsStartDate = formatICSDate(localDate);
   const icsEndDate = formatICSDate(localEndDate);
 
@@ -66,42 +61,43 @@ export function generateICSContent(apartment: ApartmentWithAssignedEmployees): s
     "BEGIN:VEVENT",
     `UID:${uid}`,
     `DTSTAMP:${formatICSDate(new Date())}`, 
-    `DTSTART:${icsStartDate}`, // Es: 20251110T130000Z
-    `DTEND:${icsEndDate}`,     // Es: 20251110T140000Z
+    `DTSTART:${icsStartDate}`, 
+    `DTEND:${icsEndDate}`,     
     `SUMMARY:${apartment.name}`, 
     `DESCRIPTION:${description}`, 
     "END:VEVENT",
     "END:VCALENDAR",
-  ].join("\r_ \n"); // Assicurati che il join usi \r\n
+  ].join("\r\n"); // <-- CORRETTO (era "\r_ \n" prima)
 
   return icsContent;
 }
 
 /**
  * === SEZIONE MODIFICATA ===
- * Avvia il download di un file .ics usando un Data URI
- * per un'esperienza migliore su mobile.
- * @param apartmentName Il nome dell'evento, usato per il nome del file.
+ * Tenta di APRIRE l'evento .ics direttamente, invece di scaricarlo.
  * @param icsContent Il contenuto generato da generateICSContent.
  */
-export function downloadICSFile(apartmentName: string, icsContent: string) {
-  // Pulisce il nome del file
-  const fileName = `${apartmentName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.ics`;
+export function downloadICSFile(icsContent: string) {
+  
+  // 1. Crea il file in memoria (Blob) con il MIME type corretto
+  // che i telefoni riconoscono per "aprire".
+  const blob = new Blob([icsContent], { type: "text/calendar" });
+  
+  // 2. Crea un URL per questo file in memoria
+  const url = URL.createObjectURL(blob);
 
-  // Crea un link temporaneo
-  const link = document.createElement("a");
-  
-  // Usa un DATA URI invece di un Blob URL.
-  // Questo, specialmente su mobile (iOS), ha più probabilità
-  // di essere interpretato come "contenuto" da aprire direttamente,
-  // piuttosto che come "file" da scaricare e salvare.
-  link.href = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(icsContent);
-  
-  // Il browser userà questo come nome del file suggerito
-  link.setAttribute("download", fileName);
-  
-  // Non è necessario aggiungere il link al documento per i data URI
-  
-  // Simula il click per avviare il download/apertura
-  link.click();
+  // 3. Usa window.open() per dire al browser "Apri questo URL".
+  // Se il browser (specialmente su mobile) riconosce "text/calendar",
+  // chiederà all'app calendario di aprirlo.
+  // Su PC desktop, potrebbe comunque scaricarlo se non ha un'app associata.
+  window.open(url);
+
+  // 4. Rilascia l'URL dalla memoria dopo un breve ritardo.
+  // Non possiamo rilasciarlo subito, altrimenti window.open fallisce.
+  setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, 1000); // 1 secondo è più che sufficiente
 }
+
+// Nota: Abbiamo rimosso 'apartmentName' perché window.open()
+// non usa il nome del file.

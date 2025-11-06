@@ -1,8 +1,7 @@
 import { ApartmentWithAssignedEmployees } from "@shared/schema";
 import { parse, format, addHours } from "date-fns";
-// === 1. PRIMA MODIFICA: Cambia questa riga ===
-import * as dateFnsTz from "date-fns-tz";
-// === FINE MODIFICA ===
+// L'import rimane invariato
+import * as dateFnsTz from "date-fns-tz"; 
 
 /**
  * Formatta una data per il formato ICS (UTC: YYYYMMDDTHHmmssZ).
@@ -31,8 +30,17 @@ export function generateICSContent(apartment: ApartmentWithAssignedEmployees): s
   const localTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   
   // Converti l'ora locale in UTC per il file ICS (fondamentale!)
-  // === 2. SECONDA MODIFICA: Aggiungi "dateFnsTz." qui ===
-  const utcStartDate = dateFnsTz.zonedTimeToUtc(localDate, localTimeZone);
+  // === INIZIO MODIFICA ===
+  // L'errore indica che la funzione non viene trovata.
+  // Proviamo a cercarla sia direttamente, sia nell'oggetto 'default'.
+  // @ts-ignore
+  const zonedTimeToUtcFunc = dateFnsTz.zonedTimeToUtc || (dateFnsTz.default && dateFnsTz.default.zonedTimeToUtc);
+  
+  if (typeof zonedTimeToUtcFunc !== 'function') {
+    throw new Error("Funzione 'zonedTimeToUtc' non trovata in date-fns-tz.");
+  }
+
+  const utcStartDate = zonedTimeToUtcFunc(localDate, localTimeZone);
   // === FINE MODIFICA ===
   
   // 2. Calcola la data di fine (assumiamo 1 ora di durata)

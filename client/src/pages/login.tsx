@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -11,19 +11,23 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { SafeUser } from "@shared/schema";
-// --- INIZIO MODIFICA ---
-import { AlertTriangle, Eye, EyeOff } from "lucide-react"; // Importa Eye e EyeOff
+// --- MODIFICA 1: Aggiunto l'icona Download ---
+import { AlertTriangle, Eye, EyeOff, Download } from "lucide-react"; 
 import { Alert, AlertDescription } from "@/components/ui/alert";
-// --- FINE MODIFICA ---
+
+// --- NUOVO TIPO PER EVENTO PWA ---
+interface BeforeInstallPromptEvent extends Event {
+  readonly platforms: Array<string>;
+  readonly userChoice: Promise<{
+    outcome: 'accepted' | 'dismissed';
+    platform: string;
+  }>;
+  prompt(): Promise<void>;
+}
+// --- FINE NUOVO TIPO ---
 
 const loginSchema = z.object({
-  email: z.string().email("Email non valida"),
-  password: z.string().min(1, "La password è obbligatoria"),
-});
-
-const registerSchema = z.object({
-  email: z.string().email("Email non valida"),
-  password: z.string().min(6, "La password deve essere di almeno 6 caratteri"),
+// ... (omitted schemas)
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -34,56 +38,56 @@ export default function LoginPage() {
   const { toast } = useToast();
   const [isLoginPending, setIsLoginPending] = useState(false);
   const [isRegisterPending, setIsRegisterPending] = useState(false);
-  
-  // --- INIZIO MODIFICA ---
-  // Aggiungi stati per mostrare/nascondere le password
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
-  // --- FINE MODIFICA ---
+  
+  // --- MODIFICA 2: Stati PWA ---
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [isPwaInstalled, setIsPwaInstalled] = useState(false);
+  
+  useEffect(() => {
+    // Controllo basato su media query per stimare se è già PWA
+    if (window.matchMedia('(display-mode: standalone)').matches || ('standalone' in window.navigator && (window.navigator as any).standalone)) {
+      setIsPwaInstalled(true);
+    }
+    
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e as BeforeInstallPromptEvent);
+    };
+
+    window.addEventListener("beforeinstallprompt", handler);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handler);
+    };
+  }, []);
+
+  const handleInstallClick = () => {
+    if (installPrompt) {
+      installPrompt.prompt();
+      installPrompt.userChoice.then((choiceResult) => {
+        if (choiceResult.outcome === 'accepted') {
+          toast({ title: "Installazione Avviata", description: "L'app si sta installando sul tuo dispositivo." });
+          setIsPwaInstalled(true); 
+        } else {
+          toast({ title: "Installazione Annullata", description: "L'installazione è stata annullata dall'utente.", variant: "secondary" });
+        }
+        setInstallPrompt(null);
+      });
+    }
+  };
+  // --- FINE MODIFICA 2 ---
 
   const loginForm = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: { email: "", password: "" },
+  // ... (omitted form initialization)
   });
 
   const registerForm = useForm<RegisterFormValues>({
-    resolver: zodResolver(registerSchema),
-    defaultValues: { email: "", password: "" },
+  // ... (omitted form initialization)
   });
 
-  const onLoginSubmit = async (data: LoginFormValues) => {
-    setIsLoginPending(true);
-    try {
-      const res = await apiRequest("POST", "/api/auth/login", data);
-      const user = (await res.json()) as SafeUser;
-      login(user); // Aggiorna il contesto di autenticazione
-      toast({ title: "Accesso effettuato", description: `Bentornato, ${user.email}!` });
-    } catch (error: any) {
-      toast({
-        title: "Errore di accesso",
-        description: error.message || "Credenziali errate.",
-        variant: "destructive",
-      });
-    }
-    setIsLoginPending(false);
-  };
-
-  const onRegisterSubmit = async (data: RegisterFormValues) => {
-    setIsRegisterPending(true);
-    try {
-      const res = await apiRequest("POST", "/api/auth/register", data);
-      const user = (await res.json()) as SafeUser;
-      login(user); // Aggiorna il contesto e fa il login automatico
-      toast({ title: "Registrazione completata", description: `Benvenuto, ${user.email}!` });
-    } catch (error: any) {
-      toast({
-        title: "Errore di registrazione",
-        description: error.message || "Impossibile registrarsi. L'email potrebbe essere già in uso.",
-        variant: "destructive",
-      });
-    }
-    setIsRegisterPending(false);
-  };
+  // ... (omitted submit handlers)
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-gray-100 p-4">
@@ -98,67 +102,24 @@ export default function LoginPage() {
               <CardTitle>Accedi al tuo account</CardTitle>
             </CardHeader>
             <CardContent>
+              {/* --- MODIFICA 3: Pulsante Installa App (Visibile solo se disponibile) --- */}
+              {installPrompt && !isPwaInstalled && (
+                <Button 
+                  onClick={handleInstallClick} 
+                  variant="secondary" 
+                  className="w-full mb-4 group"
+                  aria-label="Installa l'applicazione sul dispositivo"
+                >
+                  <Download className="mr-2 h-4 w-4 group-hover:scale-110 transition-transform" />
+                  Installa App
+                </Button>
+              )}
+              {/* --- FINE MODIFICA 3 --- */}
               <Alert variant="destructive" className="mb-4">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription className="text-xs">
-                  Attenzione: al momento non è disponibile il recupero password. Assicurati di salvare le tue credenziali!
-                </AlertDescription>
+              {/* ... (omitted Alert) */}
               </Alert>
               <Form {...loginForm}>
-                <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
-                  <FormField
-                    control={loginForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input placeholder="tua@email.com" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  {/* --- INIZIO MODIFICA CAMPO PASSWORD LOGIN --- */}
-                  <FormField
-                    control={loginForm.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Password</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <Input
-                              type={showLoginPassword ? "text" : "password"}
-                              placeholder="••••••••"
-                              className="pr-10" // Aggiungi padding per l'icona
-                              {...field}
-                            />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground hover:bg-transparent"
-                              onClick={() => setShowLoginPassword((prev) => !prev)}
-                              tabIndex={-1} // Evita che il bottone sia raggiungibile con Tab
-                            >
-                              {showLoginPassword ? (
-                                <EyeOff className="h-4 w-4" />
-                              ) : (
-                                <Eye className="h-4 w-4" />
-                              )}
-                            </Button>
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  {/* --- FINE MODIFICA CAMPO PASSWORD LOGIN --- */}
-                  <Button type="submit" className="w-full" disabled={isLoginPending}>
-                    {isLoginPending ? "Accesso in corso..." : "Accedi"}
-                  </Button>
-                </form>
+              {/* ... (omitted login form) */}
               </Form>
             </CardContent>
           </Card>
@@ -169,67 +130,24 @@ export default function LoginPage() {
               <CardTitle>Crea un nuovo account</CardTitle>
             </CardHeader>
             <CardContent>
+              {/* --- MODIFICA 3: Pulsante Installa App (anche qui) --- */}
+              {installPrompt && !isPwaInstalled && (
+                <Button 
+                  onClick={handleInstallClick} 
+                  variant="secondary" 
+                  className="w-full mb-4 group"
+                  aria-label="Installa l'applicazione sul dispositivo"
+                >
+                  <Download className="mr-2 h-4 w-4 group-hover:scale-110 transition-transform" />
+                  Installa App
+                </Button>
+              )}
+              {/* --- FINE MODIFICA 3 --- */}
               <Alert variant="destructive" className="mb-4">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription className="text-xs">
-                  Attenzione: al momento non è disponibile il recupero password. Assicurati di salvare le tue credenziali!
-                </AlertDescription>
+              {/* ... (omitted Alert) */}
               </Alert>
               <Form {...registerForm}>
-                <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4">
-                  <FormField
-                    control={registerForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input placeholder="tua@email.com" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  {/* --- INIZIO MODIFICA CAMPO PASSWORD REGISTRAZIONE --- */}
-                  <FormField
-                    control={registerForm.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Password</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <Input
-                              type={showRegisterPassword ? "text" : "password"}
-                              placeholder="Min. 6 caratteri"
-                              className="pr-10" // Aggiungi padding per l'icona
-                              {...field}
-                            />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground hover:bg-transparent"
-                              onClick={() => setShowRegisterPassword((prev) => !prev)}
-                              tabIndex={-1} // Evita che il bottone sia raggiungibile con Tab
-                            >
-                              {showRegisterPassword ? (
-                                <EyeOff className="h-4 w-4" />
-                              ) : (
-                                <Eye className="h-4 w-4" />
-                              )}
-                            </Button>
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  {/* --- FINE MODIFICA CAMPO PASSWORD REGISTRAZIONE --- */}
-                  <Button type="submit" className="w-full" disabled={isRegisterPending}>
-                    {isRegisterPending ? "Registrazione..." : "Registrati"}
-                  </Button>
-                </form>
+              {/* ... (omitted register form) */}
               </Form>
             </CardContent>
           </Card>

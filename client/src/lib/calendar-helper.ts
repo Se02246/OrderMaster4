@@ -1,10 +1,11 @@
 import { ApartmentWithAssignedEmployees } from "@shared/schema";
 import { parse, format, addHours } from "date-fns";
-// L'import rimane invariato
-import * as dateFnsTz from "date-fns-tz"; 
+// NESSUNA importazione di date-fns-tz
 
 /**
  * Formatta una data per il formato ICS (UTC: YYYYMMDDTHHmmssZ).
+ * La 'Z' alla fine del formato indica a 'format' di convertire
+ * la data (che è nel fuso orario locale) nel fuso orario UTC.
  */
 function formatICSDate(date: Date): string {
   // 'yyyyMMdd'T'HHmmss'Z' è il formato standard UTC per ICS
@@ -22,38 +23,23 @@ export function generateICSContent(apartment: ApartmentWithAssignedEmployees): s
   // Combina la data (YYYY-MM-DD) e l'ora (HH:MM)
   const localDateTimeString = `${apartment.cleaning_date} ${apartment.start_time}`;
   
-  // Analizza la stringa come data/ora locale
-  // Usiamo una data base (es. "new Date()") per il parsing
+  // 2. Analizza la stringa come data/ora LOCALE
+  // 'parse' di date-fns usa il fuso orario del browser.
+  // Es: "2025-11-10 14:00" in Italia (GMT+1) diventa un oggetto data
+  // che rappresenta "14:00 in GMT+1" (ovvero 13:00 UTC).
   const localDate = parse(localDateTimeString, "yyyy-MM-dd HH:mm", new Date());
-
-  // Ottieni il fuso orario corrente del browser (es. "Europe/Rome")
-  const localTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   
-  // Converti l'ora locale in UTC per il file ICS (fondamentale!)
-  // === INIZIO MODIFICA ===
-  // L'errore indica che la funzione non viene trovata.
-  // Proviamo a cercarla sia direttamente, sia nell'oggetto 'default'.
-  // @ts-ignore
-  const zonedTimeToUtcFunc = dateFnsTz.zonedTimeToUtc || (dateFnsTz.default && dateFnsTz.default.zonedTimeToUtc);
-  
-  if (typeof zonedTimeToUtcFunc !== 'function') {
-    throw new Error("Funzione 'zonedTimeToUtc' non trovata in date-fns-tz.");
-  }
+  // 3. Calcola la data di fine (assumiamo 1 ora di durata)
+  const localEndDate = addHours(localDate, 1);
 
-  const utcStartDate = zonedTimeToUtcFunc(localDate, localTimeZone);
-  // === FINE MODIFICA ===
-  
-  // 2. Calcola la data di fine (assumiamo 1 ora di durata)
-  const utcEndDate = addHours(utcStartDate, 1);
+  // 4. Formatta le date per il file
+  // formatICSDate convertirà automaticamente da locale a UTC.
+  const icsStartDate = formatICSDate(localDate);
+  const icsEndDate = formatICSDate(localEndDate);
 
-  // 3. Formatta le date per il file
-  const icsStartDate = formatICSDate(utcStartDate);
-  const icsEndDate = formatICSDate(utcEndDate);
-
-  // 4. Crea la descrizione
+  // 5. Crea la descrizione (invariato)
   let description = "";
   if (apartment.notes) {
-    // Sostituisce i newline con \n (necessario per ICS)
     description += `Note: ${apartment.notes.replace(/\n/g, "\\n")}`;
   }
   
@@ -68,12 +54,10 @@ export function generateICSContent(apartment: ApartmentWithAssignedEmployees): s
      description += `\\n\\nPrezzo: ${apartment.price} €`;
   }
 
-  // 5. Crea un UID univoco per l'evento
-  // Usiamo l'ID dell'app e un timestamp per renderlo univoco in caso di modifiche
+  // 6. Crea un UID univoco (invariato)
   const uid = `apartment-${apartment.id}-${Date.now()}@gestoreordini.app`;
 
-  // 6. Assembla il file .ics
-  // \r\n è il terminatore di riga standard per ICS
+  // 7. Assembla il file .ics (invariato)
   const icsContent = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
@@ -81,11 +65,11 @@ export function generateICSContent(apartment: ApartmentWithAssignedEmployees): s
     "CALSCALE:GREGORIAN",
     "BEGIN:VEVENT",
     `UID:${uid}`,
-    `DTSTAMP:${formatICSDate(new Date())}`, // Data di creazione del file
-    `DTSTART:${icsStartDate}`, // Inizio evento (UTC)
-    `DTEND:${icsEndDate}`,     // Fine evento (UTC)
-    `SUMMARY:${apartment.name}`, // Titolo
-    `DESCRIPTION:${description}`, // Descrizione
+    `DTSTAMP:${formatICSDate(new Date())}`, 
+    `DTSTART:${icsStartDate}`, // Es: 20251110T130000Z
+    `DTEND:${icsEndDate}`,     // Es: 20251110T140000Z
+    `SUMMARY:${apartment.name}`, 
+    `DESCRIPTION:${description}`, 
     "END:VEVENT",
     "END:VCALENDAR",
   ].join("\r\n");
@@ -99,29 +83,17 @@ export function generateICSContent(apartment: ApartmentWithAssignedEmployees): s
  * @param icsContent Il contenuto generato da generateICSContent.
  */
 export function downloadICSFile(apartmentName: string, icsContent: string) {
-  // Crea un "Blob" (Binary Large Object) con il contenuto
-  const blob = new Blob([icsContent], { type: "text/calendar;charset=utf-8;" });
+  // Cambiato MIME type per maggiore compatibilità
+  const blob = new Blob([icsContent], { type: "text/calendar;charset=utf-8;" }); 
   
-  // Crea un link temporaneo in memoria
   const link = document.createElement("a");
-  
-  // Crea un URL per il Blob
   link.href = URL.createObjectURL(blob);
   
-  // Pulisce il nome del file (rimuove caratteri non validi)
   const fileName = `${apartmentName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.ics`;
   
   link.setAttribute("download", fileName);
-  
-  // Aggiungi il link al documento (necessario per Firefox)
   document.body.appendChild(link);
-  
-  // Simula il click per avviare il download
   link.click();
-  
-  // Rimuovi il link dal documento
   document.body.removeChild(link);
-  
-  // Rilascia l'URL del Blob (libera memoria)
   URL.revokeObjectURL(link.href);
 }

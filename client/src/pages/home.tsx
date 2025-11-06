@@ -221,7 +221,9 @@ export default function Home() {
       // 3. Se l'orario c'è, genera e scarica il file .ics
       try {
         const icsContent = generateICSContent(apartment);
-        downloadICSFile(apartment.name, icsContent);
+        // === MODIFICA ===
+        downloadICSFile(icsContent); // Non serve più apartment.name
+        // === FINE MODIFICA ===
       } catch (error) {
         console.error("Errore generazione ICS:", error);
         toast({

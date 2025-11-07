@@ -1,12 +1,22 @@
-import { useState } from "react";
+import { useState, useMemo } from "react"; // <-- Aggiunto useMemo
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useRoute } from "wouter";
 import { format, parse, isValid } from "date-fns";
 import { it } from "date-fns/locale";
-import { ArrowLeft, Plus } from "lucide-react";
+import {
+  ArrowLeft,
+  Plus,
+  Star, // <-- Aggiunto
+  ClipboardList, // <-- Aggiunto
+  CreditCard, // <-- Aggiunto
+  X, // <-- Aggiunto
+} from "lucide-react";
 
 import { apiRequest } from "@/lib/queryClient";
-import { ApartmentWithAssignedEmployees } from "@shared/schema";
+import {
+  ApartmentWithAssignedEmployees,
+  type Apartment, // <-- Aggiunto
+} from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import ApartmentCard from "@/components/ui/data-display/ApartmentCard";
@@ -14,8 +24,13 @@ import { ApartmentModal } from "@/components/ui/modals/ApartmentModal";
 import ConfirmDeleteModal from "@/components/ui/modals/ConfirmDeleteModal";
 import { ModalState } from "@/components/ui/modals/types";
 import { useToast } from "@/hooks/use-toast";
-// === INIZIO MODIFICHE ===
 import { generateICSContent, downloadICSFile } from "@/lib/calendar-helper";
+import { cn } from "@/lib/utils"; // <-- Aggiunto
+
+// === INIZIO MODIFICHE ===
+// Definizioni Tipi
+type OrderStatus = Apartment["status"];
+type PaymentStatus = Apartment["payment_status"];
 // === FINE MODIFICHE ===
 
 export default function CalendarDay() {
@@ -25,6 +40,13 @@ export default function CalendarDay() {
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  // === INIZIO MODIFICHE ===
+  // Stati per i filtri
+  const [favoriteFilter, setFavoriteFilter] = useState<boolean | null>(null);
+  const [statusFilter, setStatusFilter] = useState<OrderStatus | null>(null);
+  const [paymentFilter, setPaymentFilter] = useState<PaymentStatus | null>(null);
+  // === FINE MODIFICHE ===
 
   // Gestione Data (invariata)
   const [currentDate, setCurrentDate] = useState<Date | null>(() => {
@@ -97,12 +119,17 @@ export default function CalendarDay() {
   // Mutazione Toggle Favorite (invariata)
   const toggleFavoriteMutation = useMutation({
     mutationFn: async (apartmentId: number) => {
-      return apiRequest("PATCH", `/api/apartments/${apartmentId}/toggle-favorite`);
+      return apiRequest(
+        "PATCH",
+        `/api/apartments/${apartmentId}/toggle-favorite`
+      );
     },
     onMutate: async (apartmentId: number) => {
       const queryKey = [`/api/apartments/date/${formattedDate}`];
       await queryClient.cancelQueries({ queryKey });
-      const previousApartments = queryClient.getQueryData<ApartmentWithAssignedEmployees[]>(queryKey);
+      const previousApartments = queryClient.getQueryData<
+        ApartmentWithAssignedEmployees[]
+      >(queryKey);
       if (previousApartments) {
         queryClient.setQueryData<ApartmentWithAssignedEmployees[]>(
           queryKey,
@@ -148,9 +175,38 @@ export default function CalendarDay() {
   };
 
   // === INIZIO MODIFICHE ===
-  /**
-   * Gestisce il click sull'icona "Aggiungi al Calendario".
-   */
+  // Handlers per i filtri
+  const handleClearFilters = () => {
+    setFavoriteFilter(null);
+    setStatusFilter(null);
+    setPaymentFilter(null);
+  };
+
+  const handleFavoriteFilterChange = () => {
+    setFavoriteFilter((prev) => (prev === null ? true : null));
+  };
+
+  const handleStatusFilterChange = () => {
+    setStatusFilter((prev) => {
+      if (prev === null) return "Da Fare";
+      if (prev === "Da Fare") return "In Corso";
+      if (prev === "In Corso") return "Fatto";
+      if (prev === "Fatto") return null;
+      return null;
+    });
+  };
+
+  const handlePaymentFilterChange = () => {
+    setPaymentFilter((prev) => {
+      if (prev === null) return "Da Pagare";
+      if (prev === "Da Pagare") return "Pagato";
+      if (prev === "Pagato") return null;
+      return null;
+    });
+  };
+  // === FINE MODIFICHE ===
+
+  // Handler Aggiungi a Calendario (invariato)
   const handleAddToCalendarClick = (
     apartment: ApartmentWithAssignedEmployees
   ) => {
@@ -160,7 +216,6 @@ export default function CalendarDay() {
         description: "Prima scegli un orario per l'ordine.",
         variant: "destructive",
       });
-      // Apriamo il modale di modifica per questo appartamento
       setModalState({ type: "edit", data: apartment });
     } else {
       try {
@@ -176,20 +231,48 @@ export default function CalendarDay() {
       }
     }
   };
-  // === FINE MODIFICHE ===
 
-  // Ordinamento Ordini (invariato)
-  const sortedApartments = apartments?.sort((a, b) => {
-    if (a.start_time && b.start_time) {
-      const timeComparison = a.start_time.localeCompare(b.start_time);
-      if (timeComparison !== 0) {
-        return timeComparison;
+  // === INIZIO MODIFICHE ===
+  // Determina se i filtri sono attivi
+  const areFiltersActive =
+    favoriteFilter !== null ||
+    statusFilter !== null ||
+    paymentFilter !== null;
+
+  // Logica filtri e ordinamento
+  const processedAppointments = useMemo(() => {
+    const filtered = (apartments || []).filter((apartment) => {
+      if (
+        favoriteFilter !== null &&
+        apartment.is_favorite !== favoriteFilter
+      ) {
+        return false;
       }
-    }
-    if (a.start_time) return -1;
-    if (b.start_time) return 1;
-    return a.id - b.id;
-  });
+      if (statusFilter !== null && apartment.status !== statusFilter) {
+        return false;
+      }
+      if (paymentFilter !== null && apartment.payment_status !== paymentFilter) {
+        return false;
+      }
+      return true;
+    });
+
+    // Sort (la logica di sort di prima è stata spostata qui)
+    const sorted = filtered.sort((a, b) => {
+      if (a.start_time && b.start_time) {
+        const timeComparison = a.start_time.localeCompare(b.start_time);
+        if (timeComparison !== 0) {
+          return timeComparison;
+        }
+      }
+      if (a.start_time) return -1;
+      if (b.start_time) return 1;
+      return a.id - b.id;
+    });
+
+    return sorted;
+  }, [apartments, favoriteFilter, statusFilter, paymentFilter]);
+  // === FINE MODIFICHE ===
 
   // Rendering (invariato)
   if (isLoading) {
@@ -233,10 +316,86 @@ export default function CalendarDay() {
           </div>
         </div>
 
+        {/* === INIZIO MODIFICHE === */}
+        {/* Pillole di filtro e ordinamento */}
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className={cn(
+              "gap-2 transition-all",
+              favoriteFilter === true
+                ? "border-yellow-300 bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
+                : "text-muted-foreground"
+            )}
+            onClick={handleFavoriteFilterChange}
+          >
+            <Star
+              size={16}
+              className={cn(
+                favoriteFilter === true
+                  ? "text-yellow-500"
+                  : "text-gray-400"
+              )}
+              fill={favoriteFilter === true ? "currentColor" : "none"}
+            />
+            Preferiti
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className={cn(
+              "gap-2 transition-all",
+              statusFilter === null && "text-muted-foreground",
+              statusFilter === "Da Fare" &&
+                "border-red-300 bg-red-100 text-red-800 hover:bg-red-200",
+              statusFilter === "In Corso" &&
+                "border-blue-300 bg-blue-100 text-blue-800 hover:bg-blue-200",
+              statusFilter === "Fatto" &&
+                "border-green-300 bg-green-100 text-green-800 hover:bg-green-200"
+            )}
+            onClick={handleStatusFilterChange}
+          >
+            <ClipboardList size={16} />
+            {statusFilter || "Stato Ordine"}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className={cn(
+              "gap-2 transition-all",
+              paymentFilter === null && "text-muted-foreground",
+              paymentFilter === "Da Pagare" &&
+                "border-red-300 bg-red-100 text-red-800 hover:bg-red-200",
+              paymentFilter === "Pagato" &&
+                "border-green-300 bg-green-100 text-green-800 hover:bg-green-200"
+            )}
+            onClick={handlePaymentFilterChange}
+          >
+            <CreditCard size={16} />
+            {paymentFilter || "Pagamento"}
+          </Button>
+
+          {/* Bottone per pulire i filtri */}
+          {areFiltersActive && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-9 w-9 p-0 rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+              onClick={handleClearFilters}
+              aria-label="Rimuovi tutti i filtri"
+              title="Rimuovi tutti i filtri"
+            >
+              <X size={16} />
+            </Button>
+          )}
+        </div>
+        {/* === FINE MODIFICHE === */}
+
         {/* Griglia Ordini (MODIFICATA) */}
-        {sortedApartments && sortedApartments.length > 0 ? (
+        {processedAppointments && processedAppointments.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {sortedApartments.map((apartment) => (
+            {processedAppointments.map((apartment) => (
               <ApartmentCard
                 key={apartment.id}
                 apartment={apartment}
@@ -245,9 +404,7 @@ export default function CalendarDay() {
                 onToggleFavorite={() =>
                   toggleFavoriteMutation.mutate(apartment.id)
                 }
-                // === INIZIO MODIFICHE ===
                 onAddToCalendarClick={() => handleAddToCalendarClick(apartment)}
-                // === FINE MODIFICHE ===
                 onStatusChange={() => {
                   queryClient.invalidateQueries({
                     queryKey: [`/api/apartments/date/${formattedDate}`],
@@ -269,7 +426,9 @@ export default function CalendarDay() {
           </div>
         ) : (
           <div className="text-center text-gray-500 py-10">
-            Nessun ordine programmato per questo giorno.
+            {areFiltersActive
+              ? "Nessun ordine trovato per questi filtri."
+              : "Nessun ordine programmato per questo giorno."}
           </div>
         )}
 

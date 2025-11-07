@@ -12,9 +12,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  BarChart,
-  Bar,
-  Legend,
+  // Rimosso BarChart, Bar, Legend
 } from "recharts";
 import {
   ChartConfig,
@@ -23,7 +21,6 @@ import {
 } from "@/components/ui/chart";
 import { format, parse } from "date-fns";
 import { it } from "date-fns/locale";
-// Nuovi import per i selettori
 import {
   Select,
   SelectContent,
@@ -33,9 +30,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-// === INIZIO MODIFICA (Aggiunta import Button) ===
 import { Button } from "@/components/ui/button";
-// === FINE MODIFICA ===
 
 
 // Definisco i nuovi tipi per i dati
@@ -78,7 +73,7 @@ const chartConfig = {
   },
   guadagni: {
     label: "Guadagni (€)",
-    color: "hsl(145, 63%, 49%)", // Verde
+    color: "hsl(var(--primary))", // Usiamo il colore primario per coerenza
   },
 } satisfies ChartConfig;
 
@@ -114,24 +109,13 @@ const formatMonthYear = (dateStr: string) => {
 
 
 export default function Statistics() {
-  // === INIZIO MODIFICA ===
-  // Stato per i selettori di data
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
-  // === INIZIO MODIFICA (Stato temporaneo per input) ===
   const [tempYear, setTempYear] = useState<number>(new Date().getFullYear());
-  // === FINE MODIFICA ===
   const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), "yyyy-MM"));
 
-  // === INIZIO MODIFICA (Rimozione limite 5 anni) ===
-  // // Genera lista di anni per il dropdown (es. 5 anni indietro)
-  // const availableYears = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
-  // === FINE MODIFICA ===
-
-  // Aggiorna la query per includere gli stati (ora usa selectedYear, che non cambia con l'input)
   const { data: stats, isLoading, isError } = useQuery<StatisticsData>({
     queryKey: [`/api/statistics?year=${selectedYear}&monthYear=${selectedMonth}`],
   });
-  // === FINE MODIFICA ===
 
   if (isLoading) {
     return (
@@ -154,12 +138,12 @@ export default function Statistics() {
 
   // Prepara i dati per i grafici
   const dayData = stats.ordersPerDayInMonth.map(d => ({
-    day: formatDay(d.day!), // 'day' è sicuramente presente qui
+    day: formatDay(d.day!), 
     ordini: d.count,
   }));
 
   const monthData = stats.ordersPerMonthInYear.map(m => ({
-    month: formatMonthAbbr(m.month!), // 'month' è sicuramente presente qui
+    month: formatMonthAbbr(m.month!), 
     ordini: m.count,
   }));
   
@@ -209,12 +193,10 @@ export default function Statistics() {
         {/* Top 3 Clienti */}
         <Card>
           <CardHeader className="pb-2">
-            {/* === INIZIO CORREZIONE ERRORE BUILD === */}
             <CardTitle className="text-base font-medium flex items-center gap-2">
               <Trophy className="h-5 w-5 text-yellow-500" />
               Top 3 Clienti
             </CardTitle>
-            {/* === FINE CORREZIONE ERRORE BUILD === */}
           </CardHeader>
           <CardContent>
             {stats.topEmployees.length > 0 ? (
@@ -235,12 +217,10 @@ export default function Statistics() {
         {/* Top 3 Giorni Produttivi */}
         <Card>
           <CardHeader className="pb-2">
-            {/* === INIZIO CORREZIONE ERRORE BUILD === */}
             <CardTitle className="text-base font-medium flex items-center gap-2">
               <CalendarClock className="h-5 w-5 text-blue-500" />
               Top 3 Giorni
             </CardTitle>
-            {/* === FINE CORREZIONE ERRORE BUILD === */}
           </CardHeader>
           <CardContent>
             {stats.busiestDays.length > 0 ? (
@@ -264,7 +244,6 @@ export default function Statistics() {
         
         {/* Grafico Ordini per Giorno */}
         <Card>
-          {/* === INIZIO MODIFICA === */}
           <CardHeader>
             <CardTitle>Ordini per Giorno ({formatMonthYear(selectedMonth)})</CardTitle>
              <div className="w-full max-w-sm pt-2">
@@ -278,7 +257,6 @@ export default function Statistics() {
               />
             </div>
           </CardHeader>
-          {/* === FINE MODIFICA === */}
           <CardContent>
             <ChartContainer config={chartConfig} className="h-[250px] w-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -300,7 +278,7 @@ export default function Statistics() {
                     padding={{ left: 20, right: 20 }}
                   />
                   <YAxis
-                    domain={[3, 'auto']} // Minimo 3
+                    domain={[3, 'auto']} 
                     allowDecimals={false}
                     tickLine={false}
                     axisLine={false}
@@ -325,10 +303,8 @@ export default function Statistics() {
 
         {/* Grafico Ordini per Mese */}
         <Card>
-          {/* === INIZIO MODIFICA === */}
           <CardHeader>
             <CardTitle>Ordini per Mese ({selectedYear})</CardTitle>
-            {/* === INIZIO MODIFICA: Layout per Input + Bottone === */}
             <div className="w-full max-w-sm pt-2 space-y-2">
               <Label htmlFor="year-picker" className="text-sm font-medium">Seleziona Anno</Label>
               <div className="flex items-center gap-2">
@@ -336,8 +312,8 @@ export default function Statistics() {
                   id="year-picker"
                   type="number"
                   placeholder="Inserisci anno"
-                  value={tempYear} // Usa stato temporaneo
-                  onChange={(e) => setTempYear(Number(e.target.value))} // Aggiorna stato temporaneo
+                  value={tempYear} 
+                  onChange={(e) => setTempYear(Number(e.target.value))} 
                   className="mt-1"
                   step="1"
                   onKeyDown={(e) => {
@@ -351,9 +327,7 @@ export default function Statistics() {
                 </Button>
               </div>
             </div>
-            {/* === FINE MODIFICA === */}
           </CardHeader>
-          {/* === FINE MODIFICA === */}
           <CardContent>
             <ChartContainer config={chartConfig} className="h-[250px] w-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -375,7 +349,7 @@ export default function Statistics() {
                     padding={{ left: 20, right: 20 }}
                   />
                   <YAxis
-                    domain={[3, 'auto']} // Minimo 3
+                    domain={[3, 'auto']} 
                     allowDecimals={false}
                     tickLine={false}
                     axisLine={false}
@@ -402,11 +376,33 @@ export default function Statistics() {
         <Card>
           <CardHeader>
             <CardTitle>Guadagni Mensili ({selectedYear})</CardTitle>
+             <div className="w-full max-w-sm pt-2 space-y-2">
+              <Label htmlFor="year-picker-earnings" className="text-sm font-medium">Seleziona Anno</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="year-picker-earnings" // ID univoco
+                  type="number"
+                  placeholder="Inserisci anno"
+                  value={tempYear} 
+                  onChange={(e) => setTempYear(Number(e.target.value))} 
+                  className="mt-1"
+                  step="1"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      setSelectedYear(tempYear);
+                    }
+                  }}
+                />
+                <Button onClick={() => setSelectedYear(tempYear)} className="mt-1">
+                  Applica
+                </Button>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <ChartContainer config={chartConfig} className="h-[250px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart
+                <LineChart // Modificato da BarChart a LineChart
                   data={earningsData}
                   margin={{
                     top: 5,
@@ -432,8 +428,8 @@ export default function Statistics() {
                   />
                   <Tooltip
                     cursor={false}
-                    content={<ChartTooltipContent 
-                      indicator="dot" 
+                    content={<ChartTooltipContent // Utilizza lo stesso TooltipContent
+                      indicator="line" // Modificato da dot a line
                       formatter={(value, name) => {
                         if (name === 'guadagni') {
                           return (
@@ -449,13 +445,15 @@ export default function Statistics() {
                       }}
                     />}
                   />
-                  <Legend />
-                  <Bar
+                  {/* Rimossa <Legend /> */}
+                  <Line // Modificato da Bar a Line
                     dataKey="guadagni"
-                    fill="var(--color-guadagni)"
-                    radius={4}
+                    type="monotone" // Aggiunto type monotone per una linea più fluida
+                    stroke="var(--color-guadagni)" // Usa la variabile CSS per il colore principale
+                    strokeWidth={2}
+                    dot={false}
                   />
-                </BarChart>
+                </LineChart>
               </ResponsiveContainer>
             </ChartContainer>
           </CardContent>

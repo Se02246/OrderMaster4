@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useRoute } from "wouter";
 import { format, parse, isValid } from "date-fns";
-import { it } from "date-fns/locale";
+import { it } from "date-fns/locale"; // === CORREZIONE: 'from' e non 'in' ===
 import {
   ArrowLeft,
   Plus,
@@ -89,7 +89,6 @@ export default function CalendarDay() {
 
   // Mutazioni (invariate)
   const mutation = useMutation({
-    // ... (invariata)
     mutationFn: async (apartmentId: number) => {
       await apiRequest("DELETE", `/api/apartments/${apartmentId}`);
     },
@@ -126,7 +125,6 @@ export default function CalendarDay() {
   });
 
   const toggleFavoriteMutation = useMutation({
-    // ... (invariata)
     mutationFn: async (apartmentId: number) => {
       return apiRequest(
         "PATCH",
@@ -233,14 +231,13 @@ export default function CalendarDay() {
     });
   };
   
-  // === INIZIO MODIFICA ===
-  // Funzione renderSortButtonContent (MODIFICATA per icon size)
+  // Funzione renderSortButtonContent (invariata)
   const renderSortButtonContent = () => {
     const [key, direction] = sortMode.split("_") as [
       "date" | "price" | "name",
       "asc" | "desc",
     ];
-    const iconProps = { size: 14, className: "flex-shrink-0" }; // <-- Dimensione 14
+    const iconProps = { size: 14, className: "flex-shrink-0" };
     const arrow =
       direction === "asc" ? (
         <ArrowUp {...iconProps} />
@@ -256,7 +253,7 @@ export default function CalendarDay() {
       icon = (
         <span
           className="font-semibold"
-          style={{ fontSize: "14px", lineHeight: "1" }} // <-- Dimensione 14
+          style={{ fontSize: "14px", lineHeight: "1" }}
         >
           {direction === "asc" ? "AZ" : "ZA"}
         </span>
@@ -269,7 +266,6 @@ export default function CalendarDay() {
       </>
     );
   };
-  // === FINE MODIFICA ===
 
   // Handler Aggiungi a Calendario (invariato)
   const handleAddToCalendarClick = (
@@ -363,10 +359,26 @@ export default function CalendarDay() {
 
   // Rendering (invariato)
   if (isLoading) {
-    // ... (skeleton) ...
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <Skeleton className="h-10 w-64" />
+          <Skeleton className="h-10 w-32" />
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {[...Array(3)].map((_, i) => (
+            <Skeleton key={i} className="h-60 rounded-lg" />
+          ))}
+        </div>
+      </div>
+    );
   }
   if (error) {
-    // ... (error) ...
+    return (
+      <div className="text-red-500 text-center">
+        Errore nel caricamento degli appuntamenti: {error.message}
+      </div>
+    );
   }
 
   return (
@@ -387,14 +399,12 @@ export default function CalendarDay() {
           </div>
         </div>
 
-        {/* === INIZIO MODIFICA === */}
-        {/* Pillole di filtro e ordinamento (MODIFICATE nelle classi) */}
+        {/* Pillole di filtro e ordinamento (invariate) */}
         <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="outline"
-            // size="sm" // Rimosso
             className={cn(
-              "gap-2 transition-all h-8 px-2.5 text-xs", // Classi custom
+              "gap-2 transition-all h-8 px-2.5 text-xs",
               favoriteFilter === true
                 ? "border-yellow-300 bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
                 : "text-muted-foreground"
@@ -402,7 +412,7 @@ export default function CalendarDay() {
             onClick={handleFavoriteFilterChange}
           >
             <Star
-              size={14} // Dimensione 14
+              size={14}
               className={cn(
                 favoriteFilter === true
                   ? "text-yellow-500"
@@ -414,9 +424,8 @@ export default function CalendarDay() {
           </Button>
           <Button
             variant="outline"
-            // size="sm" // Rimosso
             className={cn(
-              "gap-2 transition-all h-8 px-2.5 text-xs", // Classi custom
+              "gap-2 transition-all h-8 px-2.5 text-xs",
               statusFilter === null && "text-muted-foreground",
               statusFilter === "Da Fare" &&
                 "border-red-300 bg-red-100 text-red-800 hover:bg-red-200",
@@ -427,14 +436,13 @@ export default function CalendarDay() {
             )}
             onClick={handleStatusFilterChange}
           >
-            <ClipboardList size={14} /> {/* Dimensione 14 */}
+            <ClipboardList size={14} />
             {statusFilter || "Stato Ordine"}
           </Button>
           <Button
             variant="outline"
-            // size="sm" // Rimosso
             className={cn(
-              "gap-2 transition-all h-8 px-2.5 text-xs", // Classi custom
+              "gap-2 transition-all h-8 px-2.5 text-xs",
               paymentFilter === null && "text-muted-foreground",
               paymentFilter === "Da Pagare" &&
                 "border-red-300 bg-red-100 text-red-800 hover:bg-red-200",
@@ -443,35 +451,31 @@ export default function CalendarDay() {
             )}
             onClick={handlePaymentFilterChange}
           >
-            <CreditCard size={14} /> {/* Dimensione 14 */}
+            <CreditCard size={14} />
             {paymentFilter || "Pagamento"}
           </Button>
           
           <Button
             variant="outline"
-            // size="sm" // Rimosso
-            className="gap-2 text-muted-foreground h-8 px-2.5 text-xs" // Classi custom
+            className="gap-2 text-muted-foreground h-8 px-2.5 text-xs"
             onClick={handleSortChange}
             aria-label={`Ordina per ${sortMode.replace("_", " ")}`}
           >
             {renderSortButtonContent()}
           </Button>
 
-          {/* Bottone per pulire i filtri */}
           {areFiltersActive && (
             <Button
               variant="ghost"
-              // size="sm" // Rimosso
-              className="h-8 w-8 p-0 rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive" // Altezza h-8 w-8
+              className="h-8 w-8 p-0 rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
               onClick={handleClearFilters}
               aria-label="Rimuovi tutti i filtri"
               title="Rimuovi tutti i filtri"
             >
-              <X size={14} /> {/* Dimensione 14 */}
+              <X size={14} />
             </Button>
           )}
         </div>
-        {/* === FINE MODIFICA === */}
 
         {/* Griglia Ordini (invariata) */}
         {processedAppointments && processedAppointments.length > 0 ? (

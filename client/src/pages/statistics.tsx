@@ -12,6 +12,9 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  BarChart,
+  Bar,
+  Legend,
 } from "recharts";
 import {
   ChartConfig,
@@ -64,6 +67,7 @@ type StatisticsData = {
   ordersPerDayInMonth: OrdersByTime[];
   ordersPerMonthInYear: OrdersByTime[];
   mostProductiveMonth: MostProductiveMonth;
+  earningsPerMonthInYear: { month: string; total: number }[];
 };
 
 // Configurazione per i grafici
@@ -71,6 +75,10 @@ const chartConfig = {
   ordini: {
     label: "Ordini",
     color: "hsl(var(--primary))", // Usa il colore primario
+  },
+  guadagni: {
+    label: "Guadagni (€)",
+    color: "hsl(145, 63%, 49%)", // Verde
   },
 } satisfies ChartConfig;
 
@@ -153,6 +161,11 @@ export default function Statistics() {
   const monthData = stats.ordersPerMonthInYear.map(m => ({
     month: formatMonthAbbr(m.month!), // 'month' è sicuramente presente qui
     ordini: m.count,
+  }));
+  
+  const earningsData = stats.earningsPerMonthInYear.map(m => ({
+    month: formatMonthAbbr(m.month!),
+    guadagni: Number(m.total || 0),
   }));
 
   return (
@@ -380,6 +393,69 @@ export default function Statistics() {
                     dot={false}
                   />
                 </LineChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        {/* Grafico Guadagni Mensili */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Guadagni Mensili ({selectedYear})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={chartConfig} className="h-[250px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={earningsData}
+                  margin={{
+                    top: 5,
+                    right: 10,
+                    left: -20, 
+                    bottom: 5,
+                  }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis
+                    dataKey="month"
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                    padding={{ left: 20, right: 20 }}
+                  />
+                  <YAxis
+                    tickFormatter={(value) => `€${value}`}
+                    allowDecimals={false}
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                  />
+                  <Tooltip
+                    cursor={false}
+                    content={<ChartTooltipContent 
+                      indicator="dot" 
+                      formatter={(value, name) => {
+                        if (name === 'guadagni') {
+                          return (
+                            <div className="flex flex-1 justify-between leading-none">
+                              <span className="text-muted-foreground">Guadagni</span>
+                              <span className="font-mono font-medium tabular-nums text-foreground">
+                                {`€${Number(value).toFixed(2)}`}
+                              </span>
+                            </div>
+                          )
+                        }
+                        return null;
+                      }}
+                    />}
+                  />
+                  <Legend />
+                  <Bar
+                    dataKey="guadagni"
+                    fill="var(--color-guadagni)"
+                    radius={4}
+                  />
+                </BarChart>
               </ResponsiveContainer>
             </ChartContainer>
           </CardContent>

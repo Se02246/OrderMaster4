@@ -1,8 +1,5 @@
 const CACHE_NAME = 'ordermaster-cache-v1';
 const urlsToCache = [
-  '/',
-  '/index.html',
-  // Aggiungi qui altri file statici importanti che vuoi memorizzare nella cache
 ];
 
 self.addEventListener('install', (event) => {

@@ -2,9 +2,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-// === INIZIO MODIFICA: Aggiunto Euro ===
-import { ClipboardList, Trophy, CalendarClock, Zap, Euro } from "lucide-react";
-// === FINE MODIFICA ===
+import { ClipboardList, Trophy, CalendarClock, Zap } from "lucide-react";
 import { formatDateForDisplay } from "@/lib/date-utils";
 import {
   LineChart,
@@ -54,14 +52,6 @@ type OrdersByTime = {
   count: number;
 };
 
-// === INIZIO MODIFICA: Aggiunto tipo per Guadagni ===
-type EarningsByTime = {
-  day?: string;
-  month?: string;
-  earnings: number;
-};
-// === FINE MODIFICA ===
-
 type MostProductiveMonth = {
   month: string; // "YYYY-MM"
   count: number;
@@ -73,32 +63,16 @@ type StatisticsData = {
   busiestDays: ProductiveDay[];
   ordersPerDayInMonth: OrdersByTime[];
   ordersPerMonthInYear: OrdersByTime[];
-  // === INIZIO MODIFICA: Aggiunto campo Guadagni ===
-  earningsPerMonthInYear: EarningsByTime[];
-  // === FINE MODIFICA ===
   mostProductiveMonth: MostProductiveMonth;
 };
 
 // Configurazione per i grafici
-const ordersChartConfig = { // Rinominato per chiarezza
+const chartConfig = {
   ordini: {
     label: "Ordini",
     color: "hsl(var(--primary))", // Usa il colore primario
   },
 } satisfies ChartConfig;
-
-// === INIZIO MODIFICA: Configurazione per Guadagni e Formatter ===
-const earningsChartConfig = {
-  guadagni: {
-    label: "Guadagni",
-    color: "hsl(var(--chart-3))", // Un colore diverso (es. verde)
-  },
-} satisfies ChartConfig;
-
-// === CORREZIONE BUG VISIVO E BUILD: Rimosso backslash (\) prima del backtick (`) ===
-// Helper per formattare in Euro
-const formatCurrency = (value: number) => `€\${value.toLocaleString('it-IT', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-// === FINE MODIFICA ===
 
 // Formatta il mese "YYYY-MM" in "MMM" (es. "Gen")
 const formatMonthAbbr = (dateStr: string) => {
@@ -146,7 +120,6 @@ export default function Statistics() {
   // === FINE MODIFICA ===
 
   // Aggiorna la query per includere gli stati (ora usa selectedYear, che non cambia con l'input)
-  // QUESTA RIGA E' CORRETTA. L'ERRORE NEL BUILD LOG ERA CAUSATO DALLA RIGA 'formatCurrency' ERRATA.
   const { data: stats, isLoading, isError } = useQuery<StatisticsData>({
     queryKey: [`/api/statistics?year=${selectedYear}&monthYear=${selectedMonth}`],
   });
@@ -182,14 +155,6 @@ export default function Statistics() {
     ordini: m.count,
   }));
 
-  // === INIZIO MODIFICA: Preparazione dati per Guadagni ===
-  // Assicurati che 'stats.earningsPerMonthInYear' esista prima di mapparlo
-  const earningsData = stats.earningsPerMonthInYear ? stats.earningsPerMonthInYear.map(m => ({
-    month: formatMonthAbbr(m.month!), 
-    guadagni: m.earnings,
-  })) : []; // Usa un array vuoto come fallback
-  // === FINE MODIFICA ===
-
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-semibold text-dark">Statistiche</h2>
@@ -215,7 +180,7 @@ export default function Statistics() {
             <Zap className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {stats.mostProductiveMonth && stats.mostProductiveMonth.count > 0 ? (
+            {stats.mostProductiveMonth.count > 0 ? (
               <>
                 <div className="text-2xl font-bold">{stats.mostProductiveMonth.count} ordini</div>
                 <p className="text-xs text-muted-foreground">
@@ -239,7 +204,7 @@ export default function Statistics() {
             {/* === FINE CORREZIONE ERRORE BUILD === */}
           </CardHeader>
           <CardContent>
-            {stats.topEmployees && stats.topEmployees.length > 0 ? (
+            {stats.topEmployees.length > 0 ? (
               <ol className="list-decimal list-inside space-y-2">
                 {stats.topEmployees.map((employee, index) => (
                   <li key={index} className="text-sm">
@@ -265,7 +230,7 @@ export default function Statistics() {
             {/* === FINE CORREZIONE ERRORE BUILD === */}
           </CardHeader>
           <CardContent>
-            {stats.busiestDays && stats.busiestDays.length > 0 ? (
+            {stats.busiestDays.length > 0 ? (
               <ol className="list-decimal list-inside space-y-2">
                 {stats.busiestDays.map((day, index) => (
                   <li key={index} className="text-sm">
@@ -290,19 +255,19 @@ export default function Statistics() {
           <CardHeader>
             <CardTitle>Ordini per Giorno ({formatMonthYear(selectedMonth)})</CardTitle>
              <div className="w-full max-w-sm pt-2">
-               <Label htmlFor="month-picker" className="text-sm font-medium">Seleziona Mese</Label>
-               <Input
-                 id="month-picker"
-                 type="month"
-                 value={selectedMonth}
-                 onChange={(e) => setSelectedMonth(e.target.value)}
-                 className="mt-1"
-               />
-             </div>
+              <Label htmlFor="month-picker" className="text-sm font-medium">Seleziona Mese</Label>
+              <Input
+                id="month-picker"
+                type="month"
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="mt-1"
+              />
+            </div>
           </CardHeader>
           {/* === FINE MODIFICA === */}
           <CardContent>
-            <ChartContainer config={ordersChartConfig} className="h-[250px] w-full">
+            <ChartContainer config={chartConfig} className="h-[250px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart
                   data={dayData}
@@ -377,7 +342,7 @@ export default function Statistics() {
           </CardHeader>
           {/* === FINE MODIFICA === */}
           <CardContent>
-            <ChartContainer config={ordersChartConfig} className="h-[250px] w-full">
+            <ChartContainer config={chartConfig} className="h-[250px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart
                   data={monthData}
@@ -419,57 +384,6 @@ export default function Statistics() {
             </ChartContainer>
           </CardContent>
         </Card>
-
-        {/* === INIZIO MODIFICA: Nuovo Grafico Guadagni === */}
-        <Card className="lg:col-span-2"> {/* Occupa due colonne per stare sotto */}
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-             <CardTitle className="text-sm font-medium">Guadagni Totali per Mese ({selectedYear})</CardTitle>
-             <Euro className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <ChartContainer config={earningsChartConfig} className="h-[250px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart
-                  data={earningsData}
-                  margin={{
-                    top: 5,
-                    right: 10,
-                    left: -20, // Allineato con gli altri grafici
-                    bottom: 5,
-                  }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis
-                    dataKey="month"
-                    tickLine={false}
-                    axisLine={false}
-                    tickMargin={8}
-                    padding={{ left: 20, right: 20 }}
-                  />
-                  <YAxis
-                    allowDecimals={false}
-                    tickLine={false}
-                    axisLine={false}
-                    tickMargin={8}
-                    tickFormatter={formatCurrency} // Formatta in €
-                  />
-                  <Tooltip
-                    cursor={false}
-                    content={<ChartTooltipContent indicator="line" formatter={formatCurrency} />} // Formatta in €
-                  />
-                  <Line
-                    dataKey="guadagni"
-                    type="monotone"
-                    stroke="var(--color-guadagni)"
-                    strokeWidth={2}
-                    dot={false}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-        {/* === FINE MODIFICA === */}
 
       </div>
     </div>

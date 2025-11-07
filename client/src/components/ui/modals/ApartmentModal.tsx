@@ -1,4 +1,4 @@
-import React, { useState } from "react"; 
+import React, { useState, useMemo } from "react"; // Importo useMemo
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -45,7 +45,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon, PlusCircle, User } from "lucide-react";
+// === MODIFICA: Aggiungo l'icona Search ===
+import { CalendarIcon, PlusCircle, User, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -67,11 +68,25 @@ export function ApartmentModal({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false);
+  // === MODIFICA: Aggiungo lo stato per la ricerca ===
+  const [clientSearch, setClientSearch] = useState("");
 
   // Carica i dipendenti per la selezione
   const { data: employees } = useQuery<Employee[]>({
     queryKey: ["/api/employees"],
   });
+  
+  // === MODIFICA: Creo la lista filtrata di clienti ===
+  const filteredEmployees = useMemo(() => {
+    if (!employees) return [];
+    const searchTerm = clientSearch.toLowerCase().trim();
+    if (!searchTerm) return employees; // Ritorna tutti se la ricerca è vuota
+
+    return employees.filter(emp =>
+      `${emp.first_name} ${emp.last_name}`.toLowerCase().includes(searchTerm)
+    );
+  }, [employees, clientSearch]);
+
 
   // Setup del form
   const form = useForm<FormValues>({
@@ -101,6 +116,8 @@ export function ApartmentModal({
         notes: apartment?.notes ?? "",
         employee_ids: apartment?.employees.map((e) => e.id) ?? [],
       });
+      // Resetta anche la ricerca quando il modal si apre
+      setClientSearch("");
     }
   }, [isOpen, apartment, form]);
   
@@ -333,6 +350,20 @@ export function ApartmentModal({
                         Nuovo Cliente
                       </Button>
                     </div>
+                    
+                    {/* === MODIFICA: Aggiunta la barra di ricerca === */}
+                    <div className="relative mb-2">
+                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        type="search"
+                        placeholder="Cerca cliente..."
+                        className="w-full pl-8"
+                        value={clientSearch}
+                        onChange={(e) => setClientSearch(e.target.value)}
+                      />
+                    </div>
+                    {/* === FINE MODIFICA === */}
+
                     <ScrollArea className="h-40 w-full rounded-md border">
                       <FormControl>
                         <ToggleGroup
@@ -350,7 +381,8 @@ export function ApartmentModal({
                             field.onChange(numericValue);
                           }}
                         >
-                          {employees?.map((employee) => (
+                          {/* === MODIFICA: Uso la lista filtrata === */}
+                          {filteredEmployees?.map((employee) => (
                             <ToggleGroupItem
                               key={employee.id}
                               value={String(employee.id)} 
@@ -405,7 +437,6 @@ export function ApartmentModal({
 
       {/* Modal per creare un nuovo dipendente/cliente */}
       <EmployeeModal
-        mode="create"
         isOpen={isEmployeeModalOpen}
         onClose={() => setIsEmployeeModalOpen(false)}
         onSuccess={onEmployeeCreated}

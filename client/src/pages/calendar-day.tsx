@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react"; // <-- Aggiunto useMemo
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useRoute } from "wouter";
 import { format, parse, isValid } from "date-fns";
@@ -6,16 +6,21 @@ import { it } from "date-fns/locale";
 import {
   ArrowLeft,
   Plus,
-  Star, // <-- Aggiunto
-  ClipboardList, // <-- Aggiunto
-  CreditCard, // <-- Aggiunto
-  X, // <-- Aggiunto
+  Star,
+  ClipboardList,
+  CreditCard,
+  X,
+  Calendar, // === INIZIO MODIFICA === (Icona aggiunta)
+  Euro, // (Icona aggiunta)
+  ArrowUp, // (Icona aggiunta)
+  ArrowDown, // (Icona aggiunta)
+  // === FINE MODIFICA ===
 } from "lucide-react";
 
 import { apiRequest } from "@/lib/queryClient";
 import {
   ApartmentWithAssignedEmployees,
-  type Apartment, // <-- Aggiunto
+  type Apartment,
 } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -25,13 +30,20 @@ import ConfirmDeleteModal from "@/components/ui/modals/ConfirmDeleteModal";
 import { ModalState } from "@/components/ui/modals/types";
 import { useToast } from "@/hooks/use-toast";
 import { generateICSContent, downloadICSFile } from "@/lib/calendar-helper";
-import { cn } from "@/lib/utils"; // <-- Aggiunto
+import { cn } from "@/lib/utils";
 
-// === INIZIO MODIFICHE ===
 // Definizioni Tipi
 type OrderStatus = Apartment["status"];
 type PaymentStatus = Apartment["payment_status"];
-// === FINE MODIFICHE ===
+// === INIZIO MODIFICA ===
+type SortMode =
+  | "date_asc"
+  | "date_desc"
+  | "price_asc"
+  | "price_desc"
+  | "name_asc"
+  | "name_desc";
+// === FINE MODIFICA ===
 
 export default function CalendarDay() {
   const [match, params] = useRoute("/calendar/:date");
@@ -41,12 +53,14 @@ export default function CalendarDay() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // === INIZIO MODIFICHE ===
   // Stati per i filtri
   const [favoriteFilter, setFavoriteFilter] = useState<boolean | null>(null);
   const [statusFilter, setStatusFilter] = useState<OrderStatus | null>(null);
   const [paymentFilter, setPaymentFilter] = useState<PaymentStatus | null>(null);
-  // === FINE MODIFICHE ===
+  // === INIZIO MODIFICA ===
+  // Stato per l'ordinamento
+  const [sortMode, setSortMode] = useState<SortMode>("date_desc");
+  // === FINE MODIFICA ===
 
   // Gestione Data (invariata)
   const [currentDate, setCurrentDate] = useState<Date | null>(() => {
@@ -174,8 +188,7 @@ export default function CalendarDay() {
     }
   };
 
-  // === INIZIO MODIFICHE ===
-  // Handlers per i filtri
+  // Handlers per i filtri (invariati)
   const handleClearFilters = () => {
     setFavoriteFilter(null);
     setStatusFilter(null);
@@ -204,7 +217,66 @@ export default function CalendarDay() {
       return null;
     });
   };
-  // === FINE MODIFICHE ===
+  
+  // === INIZIO MODIFICA ===
+  // Handler per l'ordinamento
+  const handleSortChange = () => {
+    setSortMode((prev) => {
+      switch (prev) {
+        case "date_desc":
+          return "date_asc";
+        case "date_asc":
+          return "price_desc";
+        case "price_desc":
+          return "price_asc";
+        case "price_asc":
+          return "name_desc";
+        case "name_desc":
+          return "name_asc";
+        case "name_asc":
+          return "date_desc";
+        default:
+          return "date_desc";
+      }
+    });
+  };
+  
+  // Funzione per renderizzare il contenuto del bottone di ordinamento
+  const renderSortButtonContent = () => {
+    const [key, direction] = sortMode.split("_") as [
+      "date" | "price" | "name",
+      "asc" | "desc",
+    ];
+    const iconProps = { size: 16, className: "flex-shrink-0" };
+    const arrow =
+      direction === "asc" ? (
+        <ArrowUp {...iconProps} />
+      ) : (
+        <ArrowDown {...iconProps} />
+      );
+    let icon;
+    if (key === "date") {
+      icon = <Calendar {...iconProps} />;
+    } else if (key === "price") {
+      icon = <Euro {...iconProps} />;
+    } else {
+      icon = (
+        <span
+          className="font-semibold"
+          style={{ fontSize: "16px", lineHeight: "1" }}
+        >
+          {direction === "asc" ? "AZ" : "ZA"}
+        </span>
+      );
+    }
+    return (
+      <>
+        {icon}
+        {arrow}
+      </>
+    );
+  };
+  // === FINE MODIFICA ===
 
   // Handler Aggiungi a Calendario (invariato)
   const handleAddToCalendarClick = (
@@ -232,14 +304,14 @@ export default function CalendarDay() {
     }
   };
 
-  // === INIZIO MODIFICHE ===
-  // Determina se i filtri sono attivi
+  // Determina se i filtri sono attivi (invariato)
   const areFiltersActive =
     favoriteFilter !== null ||
     statusFilter !== null ||
     paymentFilter !== null;
 
-  // Logica filtri e ordinamento
+  // === INIZIO MODIFICA ===
+  // Logica filtri e ordinamento (AGGIORNATA)
   const processedAppointments = useMemo(() => {
     const filtered = (apartments || []).filter((apartment) => {
       if (
@@ -257,22 +329,49 @@ export default function CalendarDay() {
       return true;
     });
 
-    // Sort (la logica di sort di prima è stata spostata qui)
+    // Applica l'ordinamento dopo il filtraggio
     const sorted = filtered.sort((a, b) => {
-      if (a.start_time && b.start_time) {
-        const timeComparison = a.start_time.localeCompare(b.start_time);
-        if (timeComparison !== 0) {
-          return timeComparison;
-        }
+      switch (sortMode) {
+        case "date_asc":
+          // Per 'date' si intende l'ora di inizio in questa pagina
+          const timeA = a.start_time || "00:00";
+          const timeB = b.start_time || "00:00";
+          if (timeA.localeCompare(timeB) !== 0) {
+            return timeA.localeCompare(timeB);
+          }
+          return a.id - b.id; // Fallback
+        case "date_desc":
+          const timeADesc = a.start_time || "23:59";
+          const timeBDesc = b.start_time || "23:59";
+           if (timeBDesc.localeCompare(timeADesc) !== 0) {
+            return timeBDesc.localeCompare(timeADesc);
+          }
+           return a.id - b.id; // Fallback
+        case "price_asc":
+          const priceA = a.price ? Number(a.price) : Infinity;
+          const priceB = b.price ? Number(b.price) : Infinity;
+          if (priceA === priceB) return a.id - b.id;
+          return priceA - priceB;
+        case "price_desc":
+          const priceADesc = a.price ? Number(a.price) : -Infinity;
+          const priceBDesc = b.price ? Number(b.price) : -Infinity;
+          if (priceADesc === priceBDesc) return a.id - b.id;
+          return priceBDesc - priceADesc;
+        case "name_asc":
+          return a.name.localeCompare(b.name);
+        case "name_desc":
+          return b.name.localeCompare(a.name);
+        default:
+          // Default a 'date_desc' (ora più tarda prima)
+          const defaultTimeA = a.start_time || "00:00";
+          const defaultTimeB = b.start_time || "00:00";
+          return defaultTimeB.localeCompare(defaultTimeA);
       }
-      if (a.start_time) return -1;
-      if (b.start_time) return 1;
-      return a.id - b.id;
     });
 
     return sorted;
-  }, [apartments, favoriteFilter, statusFilter, paymentFilter]);
-  // === FINE MODIFICHE ===
+  }, [apartments, favoriteFilter, statusFilter, paymentFilter, sortMode]); // Aggiunto sortMode
+  // === FINE MODIFICA ===
 
   // Rendering (invariato)
   if (isLoading) {
@@ -316,8 +415,7 @@ export default function CalendarDay() {
           </div>
         </div>
 
-        {/* === INIZIO MODIFICHE === */}
-        {/* Pillole di filtro e ordinamento */}
+        {/* Pillole di filtro e ordinamento (MODIFICATE) */}
         <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="outline"
@@ -375,8 +473,21 @@ export default function CalendarDay() {
             <CreditCard size={16} />
             {paymentFilter || "Pagamento"}
           </Button>
+          
+          {/* === INIZIO MODIFICA === */}
+          {/* Bottone Ordinamento */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 text-muted-foreground"
+            onClick={handleSortChange}
+            aria-label={`Ordina per ${sortMode.replace("_", " ")}`}
+          >
+            {renderSortButtonContent()}
+          </Button>
+          {/* === FINE MODIFICA === */}
 
-          {/* Bottone per pulire i filtri */}
+          {/* Bottone per pulire i filtri (invariato) */}
           {areFiltersActive && (
             <Button
               variant="ghost"
@@ -390,9 +501,8 @@ export default function CalendarDay() {
             </Button>
           )}
         </div>
-        {/* === FINE MODIFICHE === */}
 
-        {/* Griglia Ordini (MODIFICATA) */}
+        {/* Griglia Ordini (MODIFICATA per usare processedAppointments) */}
         {processedAppointments && processedAppointments.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {processedAppointments.map((apartment) => (

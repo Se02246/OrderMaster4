@@ -1,4 +1,3 @@
-
 import { eq, and, like, or, inArray, desc, asc, sql, count } from "drizzle-orm";
 import { db } from "./db";
 // Aggiunti import da date-fns
@@ -43,6 +42,7 @@ type StatisticsData = {
   ordersPerDayInMonth: OrdersByTime[];
   ordersPerMonthInYear: OrdersByTime[];
   mostProductiveMonth: MostProductiveMonth;
+  earningsPerMonthInYear: { month: string; total: number }[];
 };
 
 // Tipo per le opzioni delle statistiche
@@ -447,13 +447,37 @@ export class DatabaseStorage implements IStorage {
       count: Number(dayMap.get(day) || 0)
     }));
     
+    // 7. Guadagni per Mese (basato sull'anno selezionato)
+    const earningsQuery = await db
+      .select({
+        month_key: monthSqlExpression,
+        // Assicurati di castare a numerico prima di sommare
+        total: sql<number>`SUM(CAST(${apartments.price} AS numeric))`.mapWith(Number)
+      })
+      .from(apartments)
+      .where(and(
+        eq(apartments.user_id, userId),
+        sql`${apartments.cleaning_date} >= ${yearStart}`,
+        sql`${apartments.cleaning_date} <= ${yearEnd}`,
+        sql`${apartments.price} IS NOT NULL` // Ignora ordini senza prezzo
+      ))
+      .groupBy(monthSqlExpression);
+
+    const earningsMap = new Map(earningsQuery.map(e => [e.month_key, e.total]));
+    
+    const earningsPerMonthInYear = monthsInYear.map(month => ({
+      month,
+      total: Number(earningsMap.get(month) || 0)
+    }));
+    
     return {
       totalOrders,
       topEmployees,
       busiestDays,
       ordersPerDayInMonth,
       ordersPerMonthInYear,
-      mostProductiveMonth
+      mostProductiveMonth,
+      earningsPerMonthInYear
     };
   }
 }

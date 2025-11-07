@@ -12,6 +12,7 @@ import {
   Euro,
   ArrowUp,
   ArrowDown,
+  X, // === INIZIO MODIFICA === (Icona aggiunta)
 } from "lucide-react";
 import ApartmentCard from "@/components/ui/data-display/ApartmentCard";
 import { ApartmentModal } from "@/components/ui/modals/ApartmentModal";
@@ -27,9 +28,7 @@ import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-// === INIZIO MODIFICHE ===
 import { generateICSContent, downloadICSFile } from "@/lib/calendar-helper";
-// === FINE MODIFICHE ===
 
 // Definizioni Tipi (invariate)
 type OrderStatus = Apartment["status"];
@@ -157,6 +156,17 @@ export default function Home() {
     }
   };
 
+  // === INIZIO MODIFICA ===
+  /**
+   * Resetta tutti i filtri allo stato di default.
+   */
+  const handleClearFilters = () => {
+    setFavoriteFilter(null);
+    setStatusFilter(null);
+    setPaymentFilter(null);
+  };
+  // === FINE MODIFICA ===
+
   const handleFavoriteFilterChange = () => {
     setFavoriteFilter((prev) => (prev === null ? true : null));
   };
@@ -201,16 +211,13 @@ export default function Home() {
     });
   };
 
-  // === INIZIO MODIFICHE ===
   /**
-   * Gestisce il click sull'icona "Aggiungi al Calendario".
+   * Gestisce il click sull'icona "Aggiungi al Calendario". (invariato)
    */
   const handleAddToCalendarClick = (
     apartment: ApartmentWithAssignedEmployees
   ) => {
-    // 1. Controlla se l'orario è impostato
     if (!apartment.start_time) {
-      // 2. Se manca l'orario, mostra un avviso e apri il modal di modifica
       toast({
         title: "Orario Mancante",
         description: "Prima scegli un orario per l'ordine.",
@@ -218,7 +225,6 @@ export default function Home() {
       });
       setModalState({ type: "edit", data: apartment });
     } else {
-      // 3. Se l'orario c'è, genera e scarica il file .ics
       try {
         const icsContent = generateICSContent(apartment);
         downloadICSFile(apartment.name, icsContent);
@@ -232,7 +238,6 @@ export default function Home() {
       }
     }
   };
-  // === FINE MODIFICHE ===
 
   // Funzione renderSortButtonContent (invariata)
   const renderSortButtonContent = () => {
@@ -350,7 +355,7 @@ export default function Home() {
         case "name_asc":
           return a.name.localeCompare(b.name);
         case "name_desc":
-          return b.name.localeCompare(a.name);
+          return b.name.localeCompare(b.name);
         default:
           return 0;
       }
@@ -364,6 +369,14 @@ export default function Home() {
     paymentFilter,
     sortMode,
   ]);
+  
+  // === INIZIO MODIFICA ===
+  // Determina se almeno un filtro è attivo
+  const areFiltersActive =
+    favoriteFilter !== null ||
+    statusFilter !== null ||
+    paymentFilter !== null;
+  // === FINE MODIFICA ===
 
   // Skeleton e gestione errore (invariati)
   if (isLoading) {
@@ -406,7 +419,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Pillole di filtro e ordinamento (invariate) */}
+        {/* Pillole di filtro e ordinamento (MODIFICATE) */}
         <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="outline"
@@ -473,9 +486,25 @@ export default function Home() {
           >
             {renderSortButtonContent()}
           </Button>
+          
+          {/* === INIZIO MODIFICA === */}
+          {/* Bottone per pulire i filtri */}
+          {areFiltersActive && (
+            <Button
+              variant="ghost"
+              size="sm" // Uso 'sm' per allineare l'altezza (h-9) alle altre pillole
+              className="h-9 w-9 p-0 rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+              onClick={handleClearFilters}
+              aria-label="Rimuovi tutti i filtri"
+              title="Rimuovi tutti i filtri"
+            >
+              <X size={16} />
+            </Button>
+          )}
+          {/* === FINE MODIFICA === */}
         </div>
 
-        {/* Griglia Card (MODIFICATA) */}
+        {/* Griglia Card (invariata) */}
         {processedAppointments && processedAppointments.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {processedAppointments.map((apartment) => (
@@ -487,9 +516,7 @@ export default function Home() {
                 onToggleFavorite={() =>
                   toggleFavoriteMutation.mutate(apartment.id)
                 }
-                // === INIZIO MODIFICHE ===
                 onAddToCalendarClick={() => handleAddToCalendarClick(apartment)}
-                // === FINE MODIFICHE ===
                 onStatusChange={() =>
                   queryClient.invalidateQueries({
                     queryKey: ["/api/apartments"],

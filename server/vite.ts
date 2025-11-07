@@ -94,6 +94,16 @@ export function serveStatic(app: Express) {
       return next();
     }
     // Per tutte le altre richieste (es. /calendar, /), invia l'app React
+    
+    // === AGGIUNTA ===
+    // Imposta header per NON mettere in cache questo file
+    res.set({
+      "Cache-Control": "no-cache, no-store, must-revalidate",
+      "Pragma": "no-cache",
+      "Expires": "0",
+    });
+    // === FINE AGGIUNTA ===
+    // Per tutte le altre richieste (es. /calendar, /), invia l'app React
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }

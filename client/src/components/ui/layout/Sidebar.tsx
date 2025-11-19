@@ -140,18 +140,15 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               ))}
             </ul>
             
-            {/* === TASTO COMPLETA TUTTO === */}
-            <div className="mt-6 px-2">
+            {/* === TASTO COMPLETA TUTTO (AGGIORNATO) === */}
+            <div className="mt-6 px-4">
                <button
                 onClick={() => setIsConfirmOpen(true)}
-                className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-colors shadow-sm"
+                className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium py-2 px-3 rounded-md transition-colors shadow-sm text-sm"
                >
-                <CheckCheck size={18} />
+                <CheckCheck size={16} />
                 <span>COMPLETA TUTTO</span>
                </button>
-               <p className="text-xs text-gray-500 text-center mt-2">
-                 Segna come "Fatto" e "Pagato" tutti gli ordini fino ad oggi.
-               </p>
             </div>
 
           </nav>
@@ -204,7 +201,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         />
       )}
 
-      {/* === ALERT DI CONFERMA === */}
+      {/* === ALERT DI CONFERMA (AGGIORNATO) === */}
       <AlertDialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -216,8 +213,13 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Annulla</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmBulkComplete} className="bg-green-600 hover:bg-green-700">
+            <AlertDialogCancel className="bg-red-600 hover:bg-red-700 text-white border-none">
+              Annulla
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmBulkComplete} 
+              className="bg-white text-black border border-gray-200 hover:bg-gray-100 shadow-sm"
+            >
               Conferma e Completa
             </AlertDialogAction>
           </AlertDialogFooter>

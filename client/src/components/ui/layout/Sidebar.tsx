@@ -209,7 +209,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             <AlertDialogDescription>
               Questa azione imposterà come <strong>FATTO</strong> e <strong>PAGATO</strong> tutti gli ordini con data uguale o precedente a oggi.
               <br /><br />
-              Questa operazione non può essere annullata facilmente.
+              Questa operazione non può essere annullata!
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

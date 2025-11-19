@@ -61,7 +61,7 @@ export interface IStorage {
 
   // Employee operations
   getEmployees(userId: number, options?: { search?: string }): Promise<EmployeeWithAssignedApartments[]>;
-  getEmployee(userId: number, id: number): Promise<EmployeeWithAssignedEmployees | undefined>;
+  getEmployee(userId: number, id: number): Promise<EmployeeWithAssignedApartments | undefined>;
   createEmployee(userId: number, employee: InsertEmployee): Promise<Employee>;
   deleteEmployee(userId: number, id: number): Promise<void>;
 
@@ -75,6 +75,9 @@ export interface IStorage {
 
   // Modificato il tipo di ritorno
   getStatistics(userId: number, options: StatisticsOptions): Promise<StatisticsData>;
+
+  // === NUOVO METODO ===
+  markAllPastOrdersCompleted(userId: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -479,6 +482,29 @@ export class DatabaseStorage implements IStorage {
       mostProductiveMonth,
       earningsPerMonthInYear
     };
+  }
+
+  // === NUOVO METODO ===
+  async markAllPastOrdersCompleted(userId: number): Promise<void> {
+    const today = new Date();
+    const todayStr = format(today, 'yyyy-MM-dd');
+
+    // Aggiorna tutti gli ordini dell'utente che:
+    // 1. Hanno data <= oggi
+    // 2. E (non sono "Fatto" OPPURE non sono "Pagato")
+    await db.update(apartments)
+      .set({
+        status: "Fatto",
+        payment_status: "Pagato"
+      })
+      .where(and(
+        eq(apartments.user_id, userId),
+        sql`${apartments.cleaning_date} <= ${todayStr}`,
+        or(
+            sql`${apartments.status} != 'Fatto'`,
+            sql`${apartments.payment_status} != 'Pagato'`
+        )
+      ));
   }
 }
 

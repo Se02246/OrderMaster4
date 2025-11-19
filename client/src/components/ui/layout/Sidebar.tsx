@@ -1,8 +1,22 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 // === INIZIO MODIFICA ===
-// Importa React per usare i Frammenti (<>...</>)
-import React from "react";
+// Importa React per usare i Frammenti (<>...</>) e useState
+import React, { useState } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { CheckCheck } from "lucide-react";
 // === FINE MODIFICA ===
 
 type SidebarProps = {
@@ -12,6 +26,9 @@ type SidebarProps = {
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const [location] = useLocation();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
   const isActive = (path: string) => {
     return location === path;
@@ -59,6 +76,34 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   };
   // === FINE MODIFICA TEMA ===
 
+  // === INIZIO MODIFICA FUNZIONE COMPLETAMENTO ===
+  const bulkCompleteMutation = useMutation({
+    mutationFn: () => apiRequest("PATCH", "/api/apartments/bulk-complete"),
+    onSuccess: () => {
+      toast({
+        title: "Operazione completata",
+        description: "Tutti gli ordini passati sono stati impostati come Fatti e Pagati.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/apartments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/calendar"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/statistics"] });
+      setIsConfirmOpen(false);
+      handleLinkClick(); // Chiudi sidebar su mobile
+    },
+    onError: () => {
+      toast({
+        title: "Errore",
+        description: "Non è stato possibile aggiornare gli ordini.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const confirmBulkComplete = () => {
+    bulkCompleteMutation.mutate();
+  };
+  // === FINE MODIFICA ===
+
   // === INIZIO MODIFICA ===
   // Usiamo un React.Fragment (<>) per includere sia la Sidebar che l'Overlay
   return (
@@ -94,6 +139,18 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 </li>
               ))}
             </ul>
+            
+            {/* === TASTO COMPLETA TUTTO (AGGIORNATO) === */}
+            <div className="mt-6 px-4">
+               <button
+                onClick={() => setIsConfirmOpen(true)}
+                className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium py-2 px-3 rounded-md transition-colors shadow-sm text-sm"
+               >
+                <CheckCheck size={16} />
+                <span>COMPLETA TUTTO</span>
+               </button>
+            </div>
+
           </nav>
 
           {/* === INIZIO MODIFICA TEMA === */}
@@ -143,6 +200,31 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           aria-hidden="true"
         />
       )}
+
+      {/* === ALERT DI CONFERMA (AGGIORNATO) === */}
+      <AlertDialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sei assolutamente sicuro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Questa azione imposterà come <strong>FATTO</strong> e <strong>PAGATO</strong> tutti gli ordini con data uguale o precedente a oggi.
+              <br /><br />
+              Questa operazione <strong>NON</strong> può essere annullata!
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-red-600 hover:bg-red-700 text-white border-none">
+              Annulla
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmBulkComplete} 
+              className="bg-white text-black border border-gray-200 hover:bg-gray-100 shadow-sm"
+            >
+              Conferma e Completa
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
   // === FINE MODIFICA ===

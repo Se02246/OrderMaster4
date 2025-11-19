@@ -136,6 +136,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // === NUOVA ROTTA PER AGGIORNAMENTO MASSIVO ===
+  router.patch("/apartments/bulk-complete", async (req: Request, res: Response) => {
+    try {
+      const userId = getUserId(req);
+      await storage.markAllPastOrdersCompleted(userId);
+      res.json({ message: "Ordini aggiornati con successo." });
+    } catch (error) {
+      console.error("Error bulk completing orders:", error);
+      res.status(500).json({ message: "Error bulk completing orders" });
+    }
+  });
+  // === FINE NUOVA ROTTA ===
+
   // === INIZIO CORREZIONE: ROTTA MANCANTE PER ERRORE JSON ===
   // Aggiungiamo la rotta /api/apartments/date/:date
   router.get("/apartments/date/:date", async (req: Request, res: Response) => {
